@@ -24,11 +24,11 @@ if git -C $LRAUV_REPOSITORY_DIR rev-parse --is-inside-work-tree 1>/dev/null 2>&1
     fi
 else
     LRAUV_REPOSITORY_DIR=$WORKSPACE_DIR/src/lrauv
-    git clone https://github.com/osrf/lrauv.git $LRAUV_REPOSITORY_DIR
+    git clone https://github.com/mbari-org/gz_lrauv.git $LRAUV_REPOSITORY_DIR
 fi
 
 cd $LRAUV_REPOSITORY_DIR
 IMAGE_NAME="$(basename $WORKSPACE_DIR):latest"
-docker build --target lrauv-base -t $IMAGE_NAME -f tools/setup/Dockerfile .
+docker build --target gz-lrauv-base -t $IMAGE_NAME -f tools/setup/Dockerfile .
 echo "$IMAGE_NAME" > $WORKSPACE_DIR/.image
 cp -p tools/setup/enter-container.sh $WORKSPACE_DIR/enter

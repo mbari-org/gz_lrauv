@@ -120,7 +120,7 @@ USER $USERNAME
 ############################################################
 ###             LRAUV simulation baseline stage          ###
 ############################################################
-FROM ${BASE_IMAGE} AS lrauv-base
+FROM ${BASE_IMAGE} AS gz-lrauv-base
 
 USER root
 RUN apt-get -qq update && apt-get -q install -y \
@@ -145,7 +145,7 @@ CMD $LRAUV_WS/build-then-test.sh
 ############################################################
 ###                  LRAUV simulation stage              ###
 ############################################################
-FROM lrauv-base AS lrauv
+FROM gz-lrauv-base AS gz-lrauv
 
 RUN cd $LRAUV_WS; . /setup.sh; \
   colcon build --merge-install --cmake-args -DBUILD_TESTING=OFF
