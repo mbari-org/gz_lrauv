@@ -8,7 +8,7 @@
   This model is oriented so that it faces -X. When inserted into the world
   (which uses ENU) with a zero pose, it faces West.
 -->
-<sdf version="1.6">
+<sdf version="1.11">
   <model name="tethys">
     <enable_wind>true</enable_wind>
 
@@ -28,8 +28,21 @@
           <iyy>41.980233</iyy>
           <iyz>0</iyz>
           <izz>41.980233</izz>
-
         </inertia>
+        <fluid_added_mass>
+          <kp>0.000000</kp>
+          <kv>0.000000</kv>
+          <mq>-33.463086</mq>
+          <mw>7.117842</mw>
+          <nr>-33.463086</nr>
+          <nv>-7.117842</nv>
+          <xu>-4.876161</xu>
+          <yp>0.000000</yp>
+          <yr>-7.117842</yr>
+          <yv>-126.324739</yv>
+          <zq>7.117842</zq>
+          <zw>-126.324739</zw>
+        </fluid_added_mass>
       </inertial>
 
       <collision name="main_body_buoyancy">
@@ -39,11 +52,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/tethys.dae</uri>
-            <submesh>
-              <name>Body</name>
-              <center>false</center>
-            </submesh>
+            <uri>meshes/auv_body.STL</uri>
           </mesh>
         </geometry>
         <material>
@@ -66,34 +75,31 @@
       </visual>
     </link>
 
-    <!-- Horizontal fins -->
-    <link name="horizontal_fins">
-      <pose>1.05 0 0 0 0 0</pose>
+    <!-- starboard elevator -->
+    <link name="elevator_stbd">
+      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
       <inertial>
-        <mass>0.2</mass>
+        <pose>-0.008245 0 -0.071381 0 0 0</pose>
+        <mass>0.089896</mass>
         <inertia>
-          <ixx>0.0007924568755</ixx>
-          <ixy>-0.0000000002674</ixy>
-          <ixz>0.0003978158176</ixz>
-          <iyy>0.0010546736475</iyy>
-          <iyz>-0.0000000006729</iyz>
-          <izz>0.0002633558262</izz>
+          <ixx>0.000230259968</ixx>
+          <ixy>-0.000000000096</ixy>
+          <ixz>-0.000030699196</ixz>
+          <iyy>0.000259630518</iyy>
+          <iyz>-0.000000000083</iyz>
+          <izz>0.000030551089</izz>
         </inertia>
       </inertial>
 
-      <collision name="horizontal_fins_buoyancy">
+      <collision name="elevator_stbd_buoyancy">
         @neutral_buoyancy
       </collision>
 
       <visual name= "visual">
-        <pose>-1.05 0 0 0 0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/tethys.dae</uri>
-            <submesh>
-              <name>Fins_Horizontal</name>
-              <center>false</center>
-            </submesh>
+            <uri>meshes/rudder.STL</uri>
           </mesh>
         </geometry>
         <material>
@@ -116,34 +122,125 @@
       </visual>
     </link>
 
-    <!-- Vertical fins -->
-    <link name="vertical_fins">
-      <pose>1.05 0 0 0 0 0</pose>
+    <!-- port elevator -->
+    <link name="elevator_port">
+      <pose relative_to="base_link" degrees="true">-0.49001 -0.10036 0 -90.0 0 0</pose>
       <inertial>
-        <mass>0.2</mass>
+        <pose>-0.008245 0 -0.071381 0 0 0</pose>
+        <mass>0.089896</mass>
         <inertia>
-          <ixx>0.0007924568755</ixx>
-          <ixy>-0.0000000002674</ixy>
-          <ixz>0.0003978158176</ixz>
-          <iyy>0.0010546736475</iyy>
-          <iyz>-0.0000000006729</iyz>
-          <izz>0.0002633558262</izz>
+          <ixx>0.000230259968</ixx>
+          <ixy>-0.000000000096</ixy>
+          <ixz>-0.000030699196</ixz>
+          <iyy>0.000259630518</iyy>
+          <iyz>-0.000000000083</iyz>
+          <izz>0.000030551089</izz>
         </inertia>
       </inertial>
 
-      <collision name="vertical_fin_buoyancy">
+      <collision name="elevator_port_buoyancy">
         @neutral_buoyancy
       </collision>
 
       <visual name= "visual">
-        <pose>-1.05 0 0 0 0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/tethys.dae</uri>
-            <submesh>
-              <name>Fins_vertical</name>
-              <center>false</center>
-            </submesh>
+            <uri>meshes/rudder.STL</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <specular>1.0 1.0 1.0</specular>
+          <pbr>
+            <metal>
+              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
+              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
+              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
+              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
+            </metal>
+          </pbr>
+          <script>
+            <uri>materials/scripts/</uri>
+            <uri>materials/textures/</uri>
+            <name>tethys/Tethys_Diffuse</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+
+    <!-- upper rudder -->
+    <link name="rudder_upper">
+      <pose relative_to="base_link">-0.49001 0 -0.10036 0 0 0</pose>
+      <inertial>
+        <pose>-0.008245 0 -0.071381 0 0 0</pose>
+        <mass>0.089896</mass>
+        <inertia>
+          <ixx>0.000230259968</ixx>
+          <ixy>-0.000000000096</ixy>
+          <ixz>-0.000030699196</ixz>
+          <iyy>0.000259630518</iyy>
+          <iyz>-0.000000000083</iyz>
+          <izz>0.000030551089</izz>
+        </inertia>
+      </inertial>
+
+      <collision name="rudder_upper_buoyancy">
+        @neutral_buoyancy
+      </collision>
+
+      <visual name= "visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/rudder.STL</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <specular>1.0 1.0 1.0</specular>
+          <pbr>
+            <metal>
+              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
+              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
+              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
+              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
+            </metal>
+          </pbr>
+          <script>
+            <uri>materials/scripts/</uri>
+            <uri>materials/textures/</uri>
+            <name>tethys/Tethys_Diffuse</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+
+    <!-- lower rudder -->
+    <link name="rudder_lower">
+      <pose relative_to="base_link" degrees="true">-0.49001 0 0.10036 180 0 0</pose>
+      <inertial>
+        <pose>-0.008245 0 -0.071381 0 0 0</pose>
+        <mass>0.089896</mass>
+        <inertia>
+          <ixx>0.000230259968</ixx>
+          <ixy>-0.000000000096</ixy>
+          <ixz>-0.000030699196</ixz>
+          <iyy>0.000259630518</iyy>
+          <iyz>-0.000000000083</iyz>
+          <izz>0.000030551089</izz>
+        </inertia>
+      </inertial>
+
+      <collision name="rudder_lower_buoyancy">
+        @neutral_buoyancy
+      </collision>
+
+      <visual name= "visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/rudder.STL</uri>
           </mesh>
         </geometry>
         <material>
@@ -168,17 +265,17 @@
 
     <!-- Propeller -->
     <link name="propeller">
-      <pose>1.43162 0 0 0 0 0</pose>
+      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 0 1.570796 0 0</pose>
-        <mass>0.09</mass>
+        <pose>-0.020426 0.000003 -0.000001 0 0 0</pose>
+        <mass>0.098986</mass>
         <inertia>
-          <ixx>0.000143971303</ixx>
-          <ixy>0.000000000008</ixy>
-          <ixz>-0.000000000224</ixz>
-          <iyy>0.000140915448</iyy>
-          <iyz>-0.000025236433</iyz>
-          <izz>0.000033571862</izz>
+          <ixx>0.000116947629</ixx>
+          <ixy>0.000000001573</ixy>
+          <ixz>-0.000000001220</ixz>
+          <iyy>0.000034471703</iyy>
+          <iyz>0.000019923561</iyz>
+          <izz>0.000118241998</izz>
         </inertia>
       </inertial>
 
@@ -187,14 +284,10 @@
       </collision>
 
       <visual name= "visual">
-        <pose>-1.43162 0 0 0 0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/tethys.dae</uri>
-            <submesh>
-              <name>Prop</name>
-              <center>false</center>
-            </submesh>
+            <uri>meshes/prop.STL</uri>
           </mesh>
         </geometry>
         <material>
@@ -225,7 +318,7 @@
 
       <inertial>
         <!-- Non-zero y creates roll. Not fun to tune without actual base link inertia minus battery-->
-        <pose>-0.563 0 0 0 0 0</pose>
+        <pose>0.536 0 0 0 0 0</pose>
         <mass>31.7307</mass>
         <inertia>
           <ixx>0.2327</ixx>
@@ -252,7 +345,7 @@
 
     <link name="buoyancy_engine">
       <!-- TODO: Determine location of buoyancy engine -->
-      <pose>0.137 0 0 0 0 0</pose>
+      <pose>-0.137 0 0 0 0 0</pose>
 
       <!-- TODO: Remove inertial and collision
 
@@ -314,38 +407,79 @@
       <parent>base_link</parent>
       <child>buoyancy_engine</child>
     </joint>
-    <joint name="horizontal_fins_joint" type="revolute">
-      <pose>0 0 0 0 0 0</pose>
+
+    <joint name="elevator_stbd_joint" type="revolute">
+      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
       <parent>base_link</parent>
-      <child>horizontal_fins</child>
+      <child>elevator_stbd</child>
       <axis>
-        <xyz>0 1 0</xyz>
+        <xyz>0 1 0</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
         <limit>
           <lower>-0.261799</lower>
           <upper>0.261799</upper>
-          <effort>-1</effort>
-          <velocity>-1</velocity>
+          <effort>1</effort>
+          <velocity>1</velocity>
         </limit>
       </axis>
     </joint>
 
-    <joint name="vertical_fins_joint" type="revolute">
-      <pose degrees="true">0 0 0   180 0 0</pose>
+    <joint name="elevator_port_joint" type="revolute">
+      <pose relative_to="base_link" degrees="true">-0.49001 -0.10036 0 -90.0 0 0</pose>
       <parent>base_link</parent>
-      <child>vertical_fins</child>
+      <child>elevator_port</child>
       <axis>
-        <xyz>0 0 1</xyz>
+        <xyz>0 1 0</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
+        <mimic joint="elevator_stbd_joint" axis="axis">
+          <multiplier>-1</multiplier>
+          <offset>0</offset>
+          <reference>0</reference>
+        </mimic>
         <limit>
           <lower>-0.261799</lower>
           <upper>0.261799</upper>
-          <effort>-1</effort>
-          <velocity>-1</velocity>
+          <effort>1</effort>
+          <velocity>1</velocity>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="rudder_upper_joint" type="revolute">
+      <pose relative_to="base_link" degrees="true">-0.49001 0 -0.10036 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>rudder_upper</child>
+      <axis>
+        <xyz>0 0 1</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
+        <limit>
+          <lower>-0.261799</lower>
+          <upper>0.261799</upper>
+          <effort>1</effort>
+          <velocity>1</velocity>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="rudder_lower_joint" type="revolute">
+      <pose relative_to="base_link" degrees="true">-0.49001 0 0.10036 180.0 0 0</pose>
+      <parent>base_link</parent>
+      <child>rudder_lower</child>
+      <axis>
+        <xyz>0 0 1</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
+        <mimic joint="rudder_upper_joint" axis="axis">
+          <multiplier>-1</multiplier>
+          <offset>0</offset>
+          <reference>0</reference>
+        </mimic>
+        <limit>
+          <lower>-0.261799</lower>
+          <upper>0.261799</upper>
+          <effort>1</effort>
+          <velocity>1</velocity>
         </limit>
       </axis>
     </joint>
 
     <joint name="propeller_joint" type="revolute">
-      <pose degrees="true">0 0 0   0 180 0</pose>
+      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
       <parent>base_link</parent>
       <child>propeller</child>
       <axis>
@@ -354,14 +488,14 @@
           <lower>-1e+12</lower>
           <upper>1e+12</upper>
           <effort>1e6</effort>
-          <velocity>-1</velocity>
+          <velocity>1</velocity>
         </limit>
       </axis>
     </joint>
 
     <!-- positive joint values move mass forward -->
     <joint name="battery_joint" type="prismatic">
-      <pose degrees="true">0 0 0   0 0 180</pose>
+      <pose relative_to="base_link">0 0 0 0 0 0</pose>
       <parent>base_link</parent>
       <child>battery</child>
       <axis>
@@ -380,7 +514,7 @@
 
     <!-- Drop weight -->
     <link name="drop_weight">
-      <pose>0.128 0 0 0 0 0</pose>
+      <pose>-0.128 0 0 0 0 0</pose>
       <inertial>
         <mass>1</mass>
         <inertia>

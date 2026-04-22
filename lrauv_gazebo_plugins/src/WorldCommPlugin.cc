@@ -203,7 +203,8 @@ void WorldCommPlugin::SpawnCallback(
   // The robot model is facing its own -X, so with zero ENU orientation it faces
   // West. We add an extra 90 degree yaw so zero means North, to conform with
   // NED.
-  auto rotRobot = gz::math::Quaterniond(0.0, 0.0, -GZ_PI * 0.5) * rotENU;
+  // auto rotRobot = gz::math::Quaterniond(0.0, 0.0, -GZ_PI * 0.5) * rotENU;
+  auto rotRobot = gz::math::Quaterniond(0.0, 0.0, 0.0) * rotENU;
 
   gz::msgs::Set(factoryReq.mutable_pose()->mutable_orientation(), rotRobot);
 
@@ -235,17 +236,9 @@ std::string WorldCommPlugin::TethysSdfString(const lrauv_gazebo_plugins::msgs::L
   const std::string _acommsAddress = std::to_string(_msg.acommsaddress_());
 
   const std::string sdfStr = R"(
-  <sdf version="1.9">
+  <sdf version="1.11">
   <model name=")" + _id + R"(">
     <include merge="true">
-
-      <!--
-          Without any extra pose offset, the model is facing West.
-          For the controller, zero orientation means the robot is facing North.
-          So we need to rotate it.
-          Note that this pose is expressed in ENU.
-      <pose degrees="true">0 0 0  0 0 -90</pose>
-      -->
 
       <!-- rename included model to avoid frame collisions -->
       <name>tethys_equipped</name>

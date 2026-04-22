@@ -3,7 +3,7 @@
   Development of this module has been funded by the Monterey Bay Aquarium
   Research Institute (MBARI) and the David and Lucile Packard Foundation
 -->
-<sdf version="1.9">
+<sdf version="1.11">
   <model name="tethys">
     <enable_wind>true</enable_wind>
 
@@ -89,7 +89,7 @@
             name="teledyne_pathfinder_dvl"
             type="custom" gz:type="dvl">
           <!-- Account for DVL mounting position and base link rotation -->
-          <pose degrees="true">-0.60 0 -0.16 0 0 180</pose>
+          <pose degrees="true">-0.60 0 -0.16 0 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <always_on>1</always_on>
           <update_rate>1</update_rate>
           <topic>/tethys/dvl/velocity</topic>
@@ -150,7 +150,7 @@
             <maximum_range>120.</maximum_range>
             <minimum_range>0.1</minimum_range>
             <!-- ENU to SFM -->
-            <reference_frame>0 0 0 0 0 -1.570796</reference_frame>
+            <reference_frame>0 0 0 0 0 -1.570796</reference_frame> <!-- TODO(andermi) find correct mounting position -->
           </gz:dvl>
         </sensor>
         <!--
@@ -171,7 +171,7 @@
             Also account for model being rotated 180 degrees
             See https://github.com/osrf/lrauv/issues/80.
           -->
-          <pose degrees="true">0 0 0 180 0 180</pose>
+          <pose degrees="true">0 0 0 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <imu>
             <orientation_reference_frame>
               <localization>NED</localization>
@@ -262,7 +262,7 @@
             Also account for model being rotated 180 degrees
             See https://github.com/osrf/lrauv/issues/80.
           -->
-          <pose degrees="true">0 0 0 180 0 180</pose>
+          <pose degrees="true">0 0 0 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <topic>/tethys/ahrs/magnetometer</topic>
         </sensor>
       </experimental:params>
@@ -270,13 +270,13 @@
       <plugin
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
-        <joint_name>horizontal_fins_joint</joint_name>
+        <joint_name>elevator_stbd_joint</joint_name>
         <p_gain>0.1</p_gain>
       </plugin>
       <plugin
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
-        <joint_name>vertical_fins_joint</joint_name>
+        <joint_name>rudder_upper_joint</joint_name>
         <p_gain>0.1</p_gain>
       </plugin>
       <plugin
@@ -300,7 +300,7 @@
         <!--cmd_max>0.0007</cmd_max-->
       </plugin>
       <!-- Lift and drag -->
-      <!-- Vertical fin -->
+      <!-- Upper rudder -->
       <plugin
         filename="gz-sim-lift-drag-system"
         name="gz::sim::systems::LiftDrag">
@@ -315,11 +315,11 @@
         <!-- Link's Y is perpendicular to the control surface -->
         <upward>0 1 0</upward>
         <!-- Link's X is pointing towards the back -->
-        <forward>-1 0 0</forward>
-        <link_name>vertical_fins</link_name>
-        <cp>0 0 0</cp>
+        <forward>1 0 0</forward>
+        <link_name>rudder_upper</link_name>
+        <cp>-0.008245 0 -0.071381</cp>
       </plugin>
-      <!-- Horizontal fin -->
+      <!-- Lower rudder -->
       <plugin
         filename="gz-sim-lift-drag-system"
         name="gz::sim::systems::LiftDrag">
@@ -331,12 +331,50 @@
         <alpha_stall>0.17</alpha_stall>
         <a0>0</a0>
         <area>0.0244</area>
-        <!-- Link's Z is perpendicular to the control surface -->
-        <upward>0 0 1</upward>
+        <!-- Link's Y is perpendicular to the control surface -->
+        <upward>0 -1 0</upward>
         <!-- Link's X is pointing towards the back -->
-        <forward>-1 0 0</forward>
-        <link_name>horizontal_fins</link_name>
-        <cp>0 0 0</cp>
+        <forward>1 0 0</forward>
+        <link_name>rudder_lower</link_name>
+        <cp>-0.008245 0 -0.071381</cp>
+      </plugin>
+      <!-- Starboard elevator -->
+      <plugin
+        filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+        <air_density>1025</air_density>
+        <cla>4.13</cla>
+        <cla_stall>-1.1</cla_stall>
+        <cda>0.2</cda>
+        <cda_stall>0.03</cda_stall>
+        <alpha_stall>0.17</alpha_stall>
+        <a0>0</a0>
+        <area>0.0244</area>
+        <!-- Link's Y is perpendicular to the control surface -->
+        <upward>0 1 0</upward>
+        <!-- Link's X is pointing towards the back -->
+        <forward>1 0 0</forward>
+        <link_name>elevator_stbd</link_name>
+        <cp>-0.008245 0 -0.071381</cp>
+      </plugin>
+      <!-- Port elevator -->
+      <plugin
+        filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+        <air_density>1025</air_density>
+        <cla>4.13</cla>
+        <cla_stall>-1.1</cla_stall>
+        <cda>0.2</cda>
+        <cda_stall>0.03</cda_stall>
+        <alpha_stall>0.17</alpha_stall>
+        <a0>0</a0>
+        <area>0.0244</area>
+        <!-- Link's Y is perpendicular to the control surface -->
+        <upward>0 -1 0</upward>
+        <!-- Link's X is pointing towards the back -->
+        <forward>1 0 0</forward>
+        <link_name>elevator_port</link_name>
+        <cp>-0.008245 0 -0.071381</cp>
       </plugin>
       <!-- Interface with LRAUV Main Vehicle Application for each vehicle -->
       <plugin
@@ -345,11 +383,13 @@
         <namespace>tethys</namespace>
         <command_topic>tethys/command_topic</command_topic>
         <state_topic>tethys/state_topic</state_topic>
+        <rudder_joint>rudder_upper_joint</rudder_joint>
+        <elavator_joint>elevator_stbd_joint</elavator_joint>
         <debug_printout>0</debug_printout>
         <ocean_density>1025</ocean_density>
         <override_mass_jpc>false</override_mass_jpc>
       </plugin>
-      <plugin
+      <!--plugin
         filename="HydrodynamicsPlugin"
         name="tethys::HydrodynamicsPlugin">
         <link_name>base_link</link_name>
@@ -372,6 +412,41 @@
         <mQ>0</mQ>
         <nRR>-632.698957</nRR>
         <nR>0</nR>
+      </plugin-->
+      <plugin filename="gz-sim-hydrodynamics-system"
+        name="gz::sim::systems::Hydrodynamics">
+        <link_name>base_link</link_name>
+        <kPabsP>-0.191601</kPabsP>
+        <!--mPR>33.463086</mPR-->
+        <mQabsQ>-632.698957</mQabsQ>
+        <!--mUQ>-61.182063</mUQ-->
+        <!--mUW>105.660262</mUW-->
+        <mWabsW>-58.113144</mWabsW>
+        <!--nPQ>-33.463086</nPQ-->
+        <nRabsR>-632.698957</nRabsR>
+        <!--nUR>-61.182063</nUR-->
+        <!--nUV>-105.660262</nUV-->
+        <nVabsV>58.113144</nVabsV>
+        <!--xQQ>7.117842</xQQ-->
+        <!--xRR>7.117842</xRR-->
+        <!--xVR>126.324739</xVR-->
+        <!--xVV>-54.370919</xVV-->
+        <!--xWQ>-126.324739</xWQ-->
+        <!--xWW>-54.370919</xWW-->
+        <xUabsU>-6.2282</xUabsU>
+        <yRabsR>0.000000</yRabsR>
+        <!--yUR>8.719853</yUR-->
+        <!--yUV>-23.954759</yUV-->
+        <yVabsV>-601.274653</yVabsV>
+        <!--yWP>126.324739</yWP-->
+        <zQabsQ>0.000000</zQabsQ>
+        <!--zUQ>-8.719853</zUQ-->
+        <!--zUW>-23.954759</zUW-->
+        <!--zVP>-126.324739</zVP-->
+        <zWabsW>-601.274653</zWabsW>
+        <water_density>1025</water_density>
+        <disable_coriolis>true</disable_coriolis>
+        <disable_added_mass>true</disable_added_mass>
       </plugin>
       <plugin
         filename="gz-sim-buoyancy-engine-system"
