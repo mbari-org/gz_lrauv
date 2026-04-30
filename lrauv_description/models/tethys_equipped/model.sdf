@@ -8,8 +8,9 @@
     <enable_wind>true</enable_wind>
 
     <include merge="true">
-      <!-- align with NED (face North) -->
-      <pose degrees="true">0 0 0 0 0 -90</pose>
+      <!-- Align the FSK / FRD body frame with Gazebo ENU when zero-attitude
+           means vehicle +X north, +Y east, +Z down. -->
+      <pose degrees="true">0 0 0 180 0 90</pose>
       <uri>tethys</uri>
 
       <!-- Sensors -->
@@ -88,8 +89,8 @@
             element_id="base_link" action="add"
             name="teledyne_pathfinder_dvl"
             type="custom" gz:type="dvl">
-          <!-- Account for DVL mounting position and base link rotation -->
-          <pose degrees="true">-0.60 0 -0.16 0 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- Account for DVL mounting position -->
+          <pose degrees="true">0.60 0 0.16 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <always_on>1</always_on>
           <update_rate>1</update_rate>
           <topic>/tethys/dvl/velocity</topic>
@@ -98,23 +99,27 @@
             <arrangement degrees="true">
               <beam id="1">
                 <aperture>2.1</aperture>
-                <rotation>45</rotation>
+                <rotation>-90</rotation>
                 <tilt>30</tilt>
+                <color>1.0 0.2 0.2 0.85</color>
               </beam>
-              <beam>
+              <beam id="2">
                 <aperture>2.1</aperture>
-                <rotation>135</rotation>
+                <rotation>90</rotation>
                 <tilt>30</tilt>
+                <color>0.2 1.0 0.2 0.85</color>
               </beam>
-              <beam>
+              <beam id="3">
                 <aperture>2.1</aperture>
-                <rotation>-45</rotation>
+                <rotation>0</rotation>
                 <tilt>30</tilt>
+                <color>0.2 0.4 1.0 0.85</color>
               </beam>
-              <beam>
+              <beam id="4">
                 <aperture>2.1</aperture>
-                <rotation>-135</rotation>
+                <rotation>180</rotation>
                 <tilt>30</tilt>
+                <color>1.0 0.9 0.2 0.85</color>
               </beam>
             </arrangement>
             <tracking>
@@ -150,7 +155,7 @@
             <maximum_range>120.</maximum_range>
             <minimum_range>0.1</minimum_range>
             <!-- ENU to SFM -->
-            <reference_frame>0 0 0 0 0 -1.570796</reference_frame> <!-- TODO(andermi) find correct mounting position -->
+            <reference_frame>0 0 0 0 0 1.570796</reference_frame> <!-- TODO(andermi) put this back when bkieft puts the rotation in lrauv app -->
           </gz:dvl>
         </sensor>
         <!--
@@ -166,12 +171,8 @@
             type="imu">
           <!--IMU in a Sparton AHRS-M2 -->
           <always_on>1</always_on>
-          <!-- Flip body frame to match FSK frame convention -->
-          <!--
-            Also account for model being rotated 180 degrees
-            See https://github.com/osrf/lrauv/issues/80.
-          -->
-          <pose degrees="true">0 0 0 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
+          <pose degrees="true">0 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
           <imu>
             <orientation_reference_frame>
               <localization>NED</localization>
@@ -257,12 +258,8 @@
             type="magnetometer">
           <always_on>1</always_on>
           <update_rate>10</update_rate>
-          <!-- Flip body frame to match FSK frame convention -->
-          <!--
-            Also account for model being rotated 180 degrees
-            See https://github.com/osrf/lrauv/issues/80.
-          -->
-          <pose degrees="true">0 0 0 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
+          <pose degrees="true">0 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
           <topic>/tethys/ahrs/magnetometer</topic>
         </sensor>
       </experimental:params>
@@ -271,13 +268,21 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
         <joint_name>elevator_stbd_joint</joint_name>
-        <p_gain>0.1</p_gain>
+        <p_gain>1.2</p_gain>
+        <i_gain>0.2</i_gain>
+        <d_gain>0.0</d_gain>
+        <cmd_max>1.0</cmd_max>
+        <cmd_min>-1.0</cmd_min>
       </plugin>
       <plugin
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
         <joint_name>rudder_upper_joint</joint_name>
-        <p_gain>0.1</p_gain>
+        <p_gain>1.0</p_gain>
+        <i_gain>0.1</i_gain>
+        <d_gain>0.0</d_gain>
+        <cmd_max>1.0</cmd_max>
+        <cmd_min>-1.0</cmd_min>
       </plugin>
       <plugin
         filename="gz-sim-thruster-system"
@@ -297,7 +302,7 @@
         <joint_name>battery_joint</joint_name>
         <use_velocity_commands>true</use_velocity_commands>
         <!-- TODO(andermi) WORKAROUND FOR KNOWN BUG IN GZ SIM -->
-        <!--cmd_max>0.0007</cmd_max-->
+        <cmd_max>0.0007</cmd_max>
       </plugin>
       <!-- Lift and drag -->
       <!-- Upper rudder -->
@@ -335,8 +340,8 @@
         <upward>0 -1 0</upward>
         <!-- Link's X is pointing towards the back -->
         <forward>1 0 0</forward>
-        <link_name>rudder_lower</link_name>
-        <cp>-0.008245 0 -0.071381</cp>
+        <link_name>rudder_upper</link_name>
+        <cp>-0.008245 0 0.272101</cp>
       </plugin>
       <!-- Starboard elevator -->
       <plugin
@@ -373,8 +378,8 @@
         <upward>0 -1 0</upward>
         <!-- Link's X is pointing towards the back -->
         <forward>1 0 0</forward>
-        <link_name>elevator_port</link_name>
-        <cp>-0.008245 0 -0.071381</cp>
+        <link_name>elevator_stbd</link_name>
+        <cp>-0.008245 0 0.272101</cp>
       </plugin>
       <!-- Interface with LRAUV Main Vehicle Application for each vehicle -->
       <plugin

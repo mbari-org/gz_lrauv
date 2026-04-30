@@ -255,7 +255,11 @@ void ReferenceAxisPrivate::OnPreRender()
     if (nullptr != fskVis)
       continue;
 
-    auto vehicleVis = this->scene->VisualByName(modelName);
+    auto vehicleVis = this->scene->VisualByName(modelName + "::base_link");
+    if (nullptr == vehicleVis)
+    {
+      vehicleVis = this->scene->VisualByName(modelName);
+    }
     if (nullptr == vehicleVis)
     {
       return;
@@ -263,9 +267,10 @@ void ReferenceAxisPrivate::OnPreRender()
 
     fskVis = this->scene->CreateAxisVisual();
     vehicleVis->AddChild(fskVis);
-    // TODO(chapulina) This rotation won't be needed if we update the model
-    // https://github.com/osrf/lrauv/issues/80
-    fskVis->SetLocalRotation(GZ_PI, 0, GZ_PI * 0.5);
+    // base_link is now authored directly in FSK / FRD, so the model visual
+    // and the FSK reference frame coincide.
+    // fskVis->SetLocalRotation(GZ_PI, 0, GZ_PI * 0.5);
+    fskVis->SetLocalRotation(0, 0, 0);
 
     // Ogre2 doesn't support text yet
     auto textGeom = this->scene->CreateText();

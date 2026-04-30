@@ -23,6 +23,9 @@
 #ifndef TETHYS_CONTROLPANEL_HH_
 #define TETHYS_CONTROLPANEL_HH_
 
+#include <string>
+#include <unordered_set>
+
 #include <gz/gui/Plugin.hh>
 
 #include <gz/transport/Node.hh>
@@ -48,9 +51,10 @@ class SpawnPanel : public gz::sim::GuiSystem
   /// \brief Documentation inherited
   public: void LoadConfig(const tinyxml2::XMLElement *_pluginElem) override;
 
-  /// \brief Releases the drop weight
+  /// \brief Publish an init message to spawn / initialize a vehicle.
   public: Q_INVOKABLE void Spawn(
-    double lattitude, double longitude, double depth, int commsId, QString name);
+    double latitude, double longitude, double depth, int commsId, QString name,
+    double heading = 0.0, double pitch = 0.0, double roll = 0.0);
 
   /// \brief Documentation inherited
   public: void Update(const gz::sim::UpdateInfo &,
@@ -61,6 +65,9 @@ class SpawnPanel : public gz::sim::GuiSystem
 
   /// \brief Transport publisher
   private: gz::transport::Node::Publisher pub;
+
+  /// \brief Topic used by WorldCommPlugin for spawn init messages.
+  private: std::string initTopic{"/lrauv/init"};
 
   /// \brief The names of all the models
   private: std::unordered_set<std::string> modelNames;

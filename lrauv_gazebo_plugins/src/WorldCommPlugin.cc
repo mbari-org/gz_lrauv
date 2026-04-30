@@ -22,6 +22,7 @@
 
 #include <chrono>
 
+#include <gz/math/Matrix3.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/World.hh>
 #include <gz/sim/components/AngularVelocity.hh>
@@ -178,33 +179,19 @@ void WorldCommPlugin::SpawnCallback(
   coords->set_latitude_deg(lat);
   coords->set_longitude_deg(lon);
   coords->set_elevation(ele);
-  gz::msgs::Set(factoryReq.mutable_pose()->mutable_orientation(),
-      gz::math::Quaterniond(
-      _msg.initroll_(), _msg.initpitch_(), _msg.initheading_()));
-
-  // RPH command is in NED
-  // X == R: about N
-  // Y == P: about E
-  // Z == H: about D
-
-  // Gazebo takes ENU
-  // X == R: about E
-  // Y == P: about N
-  // Z == Y: about U
-
-  auto rotENU = gz::math::Quaterniond::EulerToQuaternion(
-      // East: NED's pitch
-      _msg.initpitch_(),
-      // North: NED's roll
-      _msg.initroll_(),
-      // Up: NED's -yaw
-      -_msg.initheading_());
-
-  // The robot model is facing its own -X, so with zero ENU orientation it faces
-  // West. We add an extra 90 degree yaw so zero means North, to conform with
-  // NED.
-  // auto rotRobot = gz::math::Quaterniond(0.0, 0.0, -GZ_PI * 0.5) * rotENU;
-  auto rotRobot = gz::math::Quaterniond(0.0, 0.0, 0.0) * rotENU;
+    // Commanded attitude is expressed in NED using vehicle FSK / FRD axes:
+    //   +X north / forward, +Y east / starboard, +Z down.
+    // The included tethys_equipped model carries the fixed NED -> ENU basis
+    // change, so here we only apply the user-requested attitude, expressed in
+    // the wrapper model frame by conjugating with the fixed basis.
+    static const gz::math::Quaterniond nedToEnu(
+      gz::math::Matrix3d(
+        0.0, 1.0,  0.0,
+        1.0, 0.0,  0.0,
+        0.0, 0.0, -1.0));
+    auto rotNED = gz::math::Quaterniond(
+      _msg.initroll_(), _msg.initpitch_(), _msg.initheading_());
+    auto rotRobot = nedToEnu * rotNED * nedToEnu.Inverse();
 
   gz::msgs::Set(factoryReq.mutable_pose()->mutable_orientation(), rotRobot);
 

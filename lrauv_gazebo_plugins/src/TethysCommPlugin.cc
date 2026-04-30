@@ -21,6 +21,7 @@
  */
 
 #include <chrono>
+#include <algorithm>
 
 #include <gz/sim/Util.hh>
 #include <gz/sim/Joint.hh>
@@ -44,6 +45,21 @@
 #include "TethysCommPlugin.hh"
 
 using namespace tethys;
+
+namespace
+{
+constexpr double kMassShifterSoftCmdLower = -0.0295;
+constexpr double kMassShifterSoftCmdUpper = 0.0295;
+
+double sanitizeMassShifterCmd(double _cmd)
+{
+  if (std::isnan(_cmd))
+    return 0.0;
+
+  // Keep a small margin from prismatic hard stops to reduce DART lock-up risk.
+  return std::clamp(_cmd, kMassShifterSoftCmdLower, kMassShifterSoftCmdUpper);
+}
+}
 
 /// \brief Calculates water pressure based on depth and latitude.
 /// Borrowed from MBARI's codebase: AuvMath::OceanPressure, which implements
@@ -166,18 +182,13 @@ void AddWorldLinearVelocity(
   }
 }
 
-/// \brief Convert a vector from "SFU" frame to FSK.
-/// \param[in] _sfu Vector in model frame, which is oriented "SFU":
-///     X: Starboard / Right
-///     Y: Forward
-///     Z: Up
-/// \return Vector in FSK, which is:
-///     X: Forward
-///     Y: Starboard / Right
-///     Z: Up
-gz::math::Vector3d SFUToFSK(const gz::math::Vector3d &_sfu)
+/// \brief Convert an orientation from Gazebo's ENU world to NED.
+/// \param[in] _enu Orientation expressed in ENU.
+/// \return The same physical orientation expressed in NED.
+gz::math::Quaterniond ENUToNED(const gz::math::Quaterniond &_enu)
 {
-  return {_sfu.Y(), _sfu.X(), -_sfu.Z()};
+  static const gz::math::Quaterniond nedToEnu(GZ_PI, 0.0, GZ_PI * 0.5);
+  return nedToEnu.Inverse() * _enu;
 }
 
 /// \brief Convert a pose in ENU to NED.
@@ -185,8 +196,9 @@ gz::math::Vector3d SFUToFSK(const gz::math::Vector3d &_sfu)
 /// \return A pose in NED (what the controller expects)
 gz::math::Pose3d ENUToNED(const gz::math::Pose3d &_enu)
 {
-  return {_enu.Y(), _enu.X(), -_enu.Z(),
-          _enu.Pitch(), _enu.Roll(), -_enu.Yaw()};
+  return {
+    gz::math::Vector3d(_enu.Y(), _enu.X(), -_enu.Z()),
+    ENUToNED(_enu.Rot())};
 }
 
 // Convert a vector in ENU to NED.
@@ -255,8 +267,8 @@ void TethysCommPlugin::Configure(
     gzerr << "Error advertising topic [" << navSatTopic << "]" << std::endl;
   }
 
-  SetupControlTopics(ns);
   SetupEntities(_entity, _sdf, _ecm, _eventMgr);
+  SetupControlTopics(ns);
 }
 
 void TethysCommPlugin::SetupControlTopics(const std::string &_ns)
@@ -271,6 +283,7 @@ void TethysCommPlugin::SetupControlTopics(const std::string &_ns)
       << std::endl;
   }
 
+  this->rudderTopic = this->rudderJointName + "/0/cmd_pos";
   this->rudderTopic = gz::transport::TopicUtils::AsValidTopic(
     "/model/" + _ns + "/joint/" + this->rudderTopic);
   this->rudderPub =
@@ -281,6 +294,7 @@ void TethysCommPlugin::SetupControlTopics(const std::string &_ns)
       << std::endl;
   }
 
+  this->elevatorTopic = this->elevatorJointName + "/0/cmd_pos";
   this->elevatorTopic = gz::transport::TopicUtils::AsValidTopic(
     "/model/" + _ns + "/joint/" + this->elevatorTopic);
   this->elevatorPub =
@@ -291,6 +305,7 @@ void TethysCommPlugin::SetupControlTopics(const std::string &_ns)
       << std::endl;
   }
 
+  this->massShifterTopic = this->massShifterJointName + "/0/cmd_pos";
   this->massShifterTopic = gz::transport::TopicUtils::AsValidTopic(
     "/model/" + _ns + "/joint/" + this->massShifterTopic);
   this->massShifterPub =
@@ -460,37 +475,52 @@ void TethysCommPlugin::CommandCallback(
 
   // Rudder
   gz::msgs::Double rudderAngMsg;
-  rudderAngMsg.set_data(_msg.rudderangleaction_());
+  if (std::isnan(_msg.rudderangleaction_()))
+  {
+    rudderAngMsg.set_data(0.0);
+  }
+  else
+  {
+    rudderAngMsg.set_data(_msg.rudderangleaction_());
+  }
   this->rudderPub.Publish(rudderAngMsg);
 
   // Elevator
   gz::msgs::Double elevatorAngMsg;
-  elevatorAngMsg.set_data(_msg.elevatorangleaction_());
+  if (std::isnan(_msg.elevatorangleaction_()))
+  {
+    elevatorAngMsg.set_data(0.0);
+  }
+  else
+  {
+    elevatorAngMsg.set_data(_msg.elevatorangleaction_());
+  }
   this->elevatorPub.Publish(elevatorAngMsg);
 
   // Thruster
   gz::msgs::Double thrusterMsg;
   auto angVel = _msg.propomegaaction_();
-  thrusterMsg.set_data(angVel);
+  if (std::isnan(angVel))
+  {
+    thrusterMsg.set_data(0.0);
+  }
+  else
+  {
+    thrusterMsg.set_data(angVel);
+  }
   this->thrusterPub.Publish(thrusterMsg);
 
   // Mass shifter
+  const double massShifterCmd = sanitizeMassShifterCmd(_msg.masspositionaction_());
   if (!this->override_mass_jpc)
   {
     gz::msgs::Double massShifterMsg;
-    if (std::isnan(_msg.masspositionaction_()))
-    {
-      massShifterMsg.set_data(0.0);
-    }
-    else
-    {
-      massShifterMsg.set_data(_msg.masspositionaction_());
-    }
+    massShifterMsg.set_data(massShifterCmd);
     this->massShifterPub.Publish(massShifterMsg);
   }
   else
   {
-    this->latestMassPositionAction = _msg.masspositionaction_();
+    this->latestMassPositionAction = massShifterCmd;
   }
 
   // Buoyancy Engine
@@ -669,13 +699,9 @@ void TethysCommPlugin::PostUpdate(
   auto linVelNED = ENUToNED(linVelENU);
   gz::msgs::Set(stateMsg.mutable_posdot_(), linVelNED);
 
-  // Water velocity in FSK vehicle frame
-  // TODO(arjo): include currents in water velocity?
-  // World frame to local model frame
-  auto linVelSFU = modelPoseENU.Rot().Inverse() * linVelENU;
-
-  // Model frame is oriented "SFU", convert it to FSK
-  auto linVelFSK = SFUToFSK(linVelSFU);
+  // Water velocity in the local vehicle frame.
+  // base_link is now defined directly in FSK / FRD.
+  auto linVelFSK = modelPoseENU.Rot().Inverse() * linVelENU;
   gz::msgs::Set(stateMsg.mutable_rateuvw_(), linVelFSK);
 
   // Angular velocity in FSK
@@ -684,11 +710,8 @@ void TethysCommPlugin::PostUpdate(
     this->baseLink);
   auto angVelENU = angVelComp->Data();
 
-  // World frame to local model frame
-  auto angVelSFU = modelPoseENU.Rot().Inverse() * angVelENU;
-
-  // Model frame is oriented "SFU", convert it to FSK
-  auto angVelFSK = SFUToFSK(angVelSFU);
+  // World frame to local vehicle frame.
+  auto angVelFSK = modelPoseENU.Rot().Inverse() * angVelENU;
   gz::msgs::Set(stateMsg.mutable_ratepqr_(), angVelFSK);
 
   // Sensor data

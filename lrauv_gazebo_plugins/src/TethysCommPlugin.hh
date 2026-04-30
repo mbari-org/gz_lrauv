@@ -136,11 +136,11 @@ namespace tethys
 
     /// Topic to publish to for rudder
     private: std::string rudderTopic
-      {"vertical_fins_joint/0/cmd_pos"};
+      {"rudder_upper_joint/0/cmd_pos"};
 
     /// Topic to publish to for elevator
     private: std::string elevatorTopic
-      {"horizontal_fins_joint/0/cmd_pos"};
+      {"elevator_stbd_joint/0/cmd_pos"};
 
     /// Topic to publish to for mass shifter
     private: std::string massShifterTopic
@@ -188,10 +188,10 @@ namespace tethys
     private: std::string thrusterJointName{"propeller_joint"};
 
     /// Rudder joint name
-    private: std::string rudderJointName{"vertical_fins_joint"};
+    private: std::string rudderJointName{"rudder_upper_joint"};
 
     /// Elevator joint name
-    private: std::string elevatorJointName{"horizontal_fins_joint"};
+    private: std::string elevatorJointName{"elevator_stbd_joint"};
 
     /// Mass shifter joint name
     private: std::string massShifterJointName{"battery_joint"};

@@ -21,6 +21,8 @@
  */
 
 #include "ControlPanelPlugin.hh"
+#include <algorithm>
+
 #include <gz/common/Console.hh>
 #include <gz/plugin/Register.hh>
 
@@ -28,6 +30,8 @@
 #include <gz/gui/Conversions.hh>
 #include <gz/gui/GuiEvents.hh>
 #include <gz/gui/MainWindow.hh>
+
+#include <QMetaObject>
 
 namespace tethys
 {
@@ -66,46 +70,127 @@ void ControlPanel::ReleaseDropWeight()
 
 void ControlPanel::SetVehicle(QString _name)
 {
-  gzdbg << "Setting name as " << _name.toStdString() <<"\n";
+  auto vehicle = _name.trimmed().toStdString();
+  if (vehicle.empty())
+  {
+    gzerr << "Vehicle name cannot be empty" << std::endl;
+    return;
+  }
+
+  this->currentVehicle = vehicle;
+
+  gzdbg << "Setting name as " << this->currentVehicle <<"\n";
   this->pub = node.Advertise<lrauv_gazebo_plugins::msgs::LRAUVCommand>(
-    "/" + _name.toStdString() + "/command_topic"
+    "/" + this->currentVehicle + "/command_topic"
   );
+
+  const auto newStateTopic = "/" + this->currentVehicle + "/state_topic";
+  if (this->feedbackSubscribed && newStateTopic == this->stateTopic)
+    return;
+
+  this->stateTopic = newStateTopic;
+  if (!this->node.Subscribe(this->stateTopic, &ControlPanel::StateCallback, this))
+  {
+    gzerr << "Failed subscribing to state topic [" << this->stateTopic
+          << "]" << std::endl;
+  }
+  else
+  {
+    this->feedbackSubscribed = true;
+  }
 }
 
 void ControlPanel::SetRudder(qreal _angle)
 {
-  gzdbg << "Setting rudder angle to " << _angle << "\n";
-  lastCommand.set_rudderangleaction_(_angle);
+  const auto cmd = std::clamp(static_cast<double>(_angle),
+      -kRudderLimit, kRudderLimit);
+  gzdbg << "Setting rudder angle to " << cmd << "\n";
+  lastCommand.set_rudderangleaction_(cmd);
   this->pub.Publish(lastCommand);
 }
 
 void ControlPanel::SetElevator(qreal _angle)
 {
-  gzdbg << "Setting elevator angle to " << _angle << "\n";
-  lastCommand.set_elevatorangleaction_(_angle);
+  const auto cmd = std::clamp(static_cast<double>(_angle),
+      -kElevatorLimit, kElevatorLimit);
+  gzdbg << "Setting elevator angle to " << cmd << "\n";
+  lastCommand.set_elevatorangleaction_(cmd);
   this->pub.Publish(lastCommand);
 }
 
 void ControlPanel::SetPitchMass(qreal _massPosition)
 {
-  gzdbg << "Setting mass position angle to " << _massPosition << "\n";
-  lastCommand.set_masspositionaction_(_massPosition);
+  const auto cmd = std::clamp(static_cast<double>(_massPosition),
+      kMassMin, kMassMax);
+  gzdbg << "Setting mass position to " << cmd << "\n";
+  lastCommand.set_masspositionaction_(cmd);
   this->pub.Publish(lastCommand);
 }
 
 
 void ControlPanel::SetThruster(qreal _thrust)
 {
-  gzdbg << "Setting thruster angular velocity to " << _thrust << "\n";
-  lastCommand.set_propomegaaction_(_thrust);
+  const auto cmd = std::clamp(static_cast<double>(_thrust),
+      -kThrusterLimit, kThrusterLimit);
+  gzdbg << "Setting thruster angular velocity to " << cmd << "\n";
+  lastCommand.set_propomegaaction_(cmd);
   this->pub.Publish(lastCommand);
 }
 
 void ControlPanel::SetBuoyancyEngine(qreal _volume)
 {
-  gzdbg << "Setting buoyancy engine to " << _volume << "\n";
-  lastCommand.set_buoyancyaction_(_volume);
+  const auto cmd = std::clamp(static_cast<double>(_volume),
+      kBuoyancyMin, kBuoyancyMax);
+  gzdbg << "Setting buoyancy engine to " << cmd << "\n";
+  lastCommand.set_buoyancyaction_(cmd);
   this->pub.Publish(lastCommand);
+}
+
+double ControlPanel::RudderFeedback() const
+{
+  return this->rudderFeedback;
+}
+
+double ControlPanel::ElevatorFeedback() const
+{
+  return this->elevatorFeedback;
+}
+
+double ControlPanel::MassFeedback() const
+{
+  return this->massFeedback;
+}
+
+double ControlPanel::ThrusterFeedback() const
+{
+  return this->thrusterFeedback;
+}
+
+double ControlPanel::BuoyancyFeedback() const
+{
+  return this->buoyancyFeedback;
+}
+
+void ControlPanel::StateCallback(
+  const lrauv_gazebo_plugins::msgs::LRAUVState &_msg)
+{
+  const double rudder = _msg.rudderangle_();
+  const double elevator = _msg.elevatorangle_();
+  const double mass = _msg.massposition_();
+  const double thruster = _msg.propomega_();
+  const double buoyancy = _msg.buoyancyposition_();
+
+  QMetaObject::invokeMethod(this,
+    [this, rudder, elevator, mass, thruster, buoyancy]()
+    {
+      this->rudderFeedback = rudder;
+      this->elevatorFeedback = elevator;
+      this->massFeedback = mass;
+      this->thrusterFeedback = thruster;
+      this->buoyancyFeedback = buoyancy;
+      emit this->FeedbackUpdated();
+    },
+    Qt::QueuedConnection);
 }
 }
 

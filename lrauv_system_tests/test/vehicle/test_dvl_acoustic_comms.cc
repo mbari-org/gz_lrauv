@@ -74,7 +74,7 @@ TEST(DVLTest, BottomTrackingAcousticComms)
   auto cmdPubAngleTethys =
     node.Advertise<gz::msgs::Double>(
       gz::transport::TopicUtils::AsValidTopic(
-      "/model/tethys/joint/vertical_fins_joint/0/cmd_pos"));
+      "/model/tethys/joint/rudder_upper_joint/0/cmd_pos"));
 
   auto cmdPubVelDaphne =
     node.Advertise<gz::msgs::Double>(
@@ -83,7 +83,7 @@ TEST(DVLTest, BottomTrackingAcousticComms)
   auto cmdPubAngleDaphne =
     node.Advertise<gz::msgs::Double>(
       gz::transport::TopicUtils::AsValidTopic(
-      "/model/daphne/joint/vertical_fins_joint/0/cmd_pos"));
+      "/model/daphne/joint/rudder_upper_joint/0/cmd_pos"));
 
   // DVL sensor callback setup for tethys
   std::function<void(const DVLVelocityTracking &)> dvlCbTethys =

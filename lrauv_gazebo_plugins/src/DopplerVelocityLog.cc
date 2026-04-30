@@ -180,12 +180,15 @@ class AcousticBeam
   /// beam i.e. a rotation about the y-axis of its frame,
   /// away from the x-axis. Must lie in the (-90, 90) degrees
   /// interval.
+  /// \param[in] _colorOverride Optional color override for visualization.
   public: AcousticBeam(
       const int _id,
       const gz::math::Angle _apertureAngle,
       const gz::math::Angle _rotationAngle,
-      const gz::math::Angle _tiltAngle)
+      const gz::math::Angle _tiltAngle,
+      const std::optional<gz::math::Color> &_colorOverride = std::nullopt)
     : id(_id), apertureAngle(_apertureAngle),
+      colorOverride(_colorOverride),
       normalizedRadius(std::atan(_apertureAngle.Radian() / 2.))
   {
     // Use extrinsic XY convention (as it is easier to reason about)
@@ -236,9 +239,16 @@ class AcousticBeam
     return this->sphericalFootprint;
   }
 
+  public: const std::optional<gz::math::Color> &ColorOverride() const
+  {
+    return this->colorOverride;
+  }
+
   private: int id;
 
   private: gz::math::Angle apertureAngle;
+
+  private: std::optional<gz::math::Color> colorOverride;
 
   private: double normalizedRadius;
 
@@ -956,13 +966,14 @@ DopplerVelocityLog::Implementation::SetupBeamMarkers(
   gz::msgs::Marker_V beamMarkers;
   for (const AcousticBeam & beam : this->beams)
   {
+    const int markerIdOffset = 4 * beam.Id();
     const double angularResolution =
         this->resolution / beam.NormalizedRadius();
     const int lobeNumTriangles =
         static_cast<int>(std::ceil(2. * GZ_PI / angularResolution));
 
     auto * beamLowerQuantileConeMarker = beamMarkers.add_marker();
-    beamLowerQuantileConeMarker->set_id(3 * beam.Id());
+    beamLowerQuantileConeMarker->set_id(markerIdOffset);
     beamLowerQuantileConeMarker->set_ns(
         _sensor->Name() + "::" + _namespace + "::beams");
     beamLowerQuantileConeMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
@@ -988,10 +999,10 @@ DopplerVelocityLog::Implementation::SetupBeamMarkers(
 
     auto * beamUpperQuantileConeMarker = beamMarkers.add_marker();
     *beamUpperQuantileConeMarker = *beamLowerQuantileConeMarker;
-    beamUpperQuantileConeMarker->set_id(3 * beam.Id() + 1);
+    beamUpperQuantileConeMarker->set_id(markerIdOffset + 1);
 
     auto * beamCapMarker = beamMarkers.add_marker();
-    beamCapMarker->set_id(3 * beam.Id() + 2);
+    beamCapMarker->set_id(markerIdOffset + 2);
     beamCapMarker->set_ns(
         _sensor->Name() + "::" + _namespace + "::beams");
     beamCapMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
@@ -1012,6 +1023,16 @@ DopplerVelocityLog::Implementation::SetupBeamMarkers(
     gz::msgs::Set(
         beamCapMarker->add_point(),
         gz::math::Vector3d{1., beam.NormalizedRadius(), 0.});
+
+    auto * beamIdMarker = beamMarkers.add_marker();
+    beamIdMarker->set_id(markerIdOffset + 3);
+    beamIdMarker->set_ns(
+        _sensor->Name() + "::" + _namespace + "::beams");
+    beamIdMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
+    beamIdMarker->set_type(gz::msgs::Marker::TEXT);
+    beamIdMarker->set_visibility(gz::msgs::Marker::GUI);
+    beamIdMarker->set_text("B" + std::to_string(beam.Id()));
+    *beamIdMarker->mutable_lifetime() = gz::msgs::Convert(lifetime);
   }
   return beamMarkers;
 }
@@ -1050,6 +1071,11 @@ InitializeBeamArrangement(DopplerVelocityLog *_sensor)
         "rotation", gz::math::Angle::Zero).first * angleUnit).Normalized();
     const auto beamTiltAngle = (beamElement->Get<gz::math::Angle>(
         "tilt", gz::math::Angle::Zero).first * angleUnit).Normalized();
+    std::optional<gz::math::Color> beamColorOverride = std::nullopt;
+    if (beamElement->HasElement("color"))
+    {
+      beamColorOverride = beamElement->Get<gz::math::Color>("color");
+    }
     if (std::abs(beamTiltAngle.Radian()) >=
         std::abs(gz::math::Angle::HalfPi.Radian()))
     {
@@ -1064,7 +1090,7 @@ InitializeBeamArrangement(DopplerVelocityLog *_sensor)
     // Build acoustic beam
     this->beams.push_back(AcousticBeam{
         beamId, beamApertureAngle, beamRotationAngle,
-        beamTiltAngle});
+        beamTiltAngle, beamColorOverride});
 
     gzmsg << "Adding acoustic beam #" << beamId
            << " to [" << _sensor->Name() << "] sensor. "
@@ -1073,7 +1099,8 @@ InitializeBeamArrangement(DopplerVelocityLog *_sensor)
            << "it exhibits a " << beamTiltAngle.Radian() << " rads "
            << "(" << beamTiltAngle.Degree() << " degrees) tilt, "
            << "and it is rotated " << beamRotationAngle.Radian() << " rads "
-           << "(" << beamRotationAngle.Degree() << " degrees)."
+           << "(" << beamRotationAngle.Degree() << " degrees)"
+           << (beamColorOverride.has_value() ? " with color override." : ".")
            << std::endl;
 
     defaultBeamId = this->beams.back().Id() + 1;
@@ -1933,12 +1960,15 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
 
   for (int i = 0; i < _trackingMessage.beams_size(); ++i)
   {
+    const int markerOffset = 4 * i;
     auto * beamLowerQuantileConeMarker =
-        _beamMarkersMessage->mutable_marker(3 * i);
+      _beamMarkersMessage->mutable_marker(markerOffset);
     auto * beamUpperQuantileConeMarker =
-        _beamMarkersMessage->mutable_marker(3 * i + 1);
+      _beamMarkersMessage->mutable_marker(markerOffset + 1);
     auto * beamCapMarker =
-        _beamMarkersMessage->mutable_marker(3 * i + 2);
+      _beamMarkersMessage->mutable_marker(markerOffset + 2);
+    auto * beamIdMarker =
+      _beamMarkersMessage->mutable_marker(markerOffset + 3);
 
     beamLowerQuantileConeMarker->set_parent(
         this->depthSensor->Parent()->Name());
@@ -1946,6 +1976,8 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
         this->depthSensor->Parent()->Name());
     beamCapMarker->set_parent(
         this->depthSensor->Parent()->Name());
+    beamIdMarker->set_parent(
+      this->depthSensor->Parent()->Name());
 
     const gz::math::Pose3d beamLocalTransform =
         this->depthSensor->LocalPose() * this->beams[i].Transform();
@@ -1954,6 +1986,7 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
     gz::msgs::Set(
         beamUpperQuantileConeMarker->mutable_pose(), beamLocalTransform);
     gz::msgs::Set(beamCapMarker->mutable_pose(), beamLocalTransform);
+    gz::msgs::Set(beamIdMarker->mutable_pose(), beamLocalTransform);
 
     const auto & beamMessage = _trackingMessage.beams(i);
     if (beamMessage.locked())
@@ -1971,15 +2004,32 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
       gz::msgs::Set(beamCapMarker->mutable_scale(),
                     beamRangeUpperQuantile * gz::math::Vector3d::One);
 
-      const gz::math::Vector3d beamAxis =
-          this->referenceFrameRotation * this->beamsFrameTransform.Rot() *
-          this->beams[i].Axis();
+      const double beamLabelRange =
+          beamRangeUpperQuantile > 0.5 ? beamRangeUpperQuantile : 0.5;
+      gz::math::Pose3d beamIdMarkerPose = beamLocalTransform;
+      beamIdMarkerPose.Pos() += beamLocalTransform.Rot() *
+          gz::math::Vector3d{1.05 * beamLabelRange, 0., 0.};
+      gz::msgs::Set(beamIdMarker->mutable_pose(), beamIdMarkerPose);
+      gz::msgs::Set(beamIdMarker->mutable_scale(),
+                    gz::math::Vector3d{0.2, 0.2, 0.2});
 
-      const double beamSpeed =
-          gz::msgs::Convert(beamMessage.velocity().mean()).Dot(beamAxis);
       gz::math::Color beamLowerQuantileMarkerColor{0., 0., 0., 0.85};
-      // Linearly map beam speed in the [-1 m/s, 1 m/s] to full-scale hue.
-      beamLowerQuantileMarkerColor.SetFromHSV(180. + beamSpeed * 360., 1., 0.75);
+      const auto &beamColorOverride = this->beams[i].ColorOverride();
+      if (beamColorOverride.has_value())
+      {
+        beamLowerQuantileMarkerColor = beamColorOverride.value();
+      }
+      else
+      {
+        const gz::math::Vector3d beamAxis =
+            this->referenceFrameRotation * this->beamsFrameTransform.Rot() *
+            this->beams[i].Axis();
+        const double beamSpeed =
+            gz::msgs::Convert(beamMessage.velocity().mean()).Dot(beamAxis);
+        // Linearly map beam speed in the [-1 m/s, 1 m/s] to full-scale hue.
+        beamLowerQuantileMarkerColor.SetFromHSV(
+            180. + beamSpeed * 360., 1., 0.75);
+      }
       auto * beamLowerQuantileConeMaterial =
           beamLowerQuantileConeMarker->mutable_material();
       gz::msgs::Set(beamLowerQuantileConeMaterial->mutable_ambient(),
@@ -1990,7 +2040,10 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
                     beamLowerQuantileMarkerColor);
       gz::math::Color beamUpperQuantileMarkerColor =
           beamLowerQuantileMarkerColor;
-      beamUpperQuantileMarkerColor.A(0.25);
+      if (beamUpperQuantileMarkerColor.A() > 0.25)
+      {
+        beamUpperQuantileMarkerColor.A(0.25);
+      }
       auto * beamUpperQuantileConeMaterial =
           beamUpperQuantileConeMarker->mutable_material();
       gz::msgs::Set(beamUpperQuantileConeMaterial->mutable_ambient(),
@@ -2001,15 +2054,25 @@ void DopplerVelocityLog::Implementation::UpdateBeamMarkers(
                     beamUpperQuantileMarkerColor);
       *beamCapMarker->mutable_material() =
           beamUpperQuantileConeMarker->material();
+      const gz::math::Color beamIdMarkerColor{1., 1., 1., 0.95};
+      auto * beamIdMarkerMaterial = beamIdMarker->mutable_material();
+      gz::msgs::Set(beamIdMarkerMaterial->mutable_ambient(),
+                    beamIdMarkerColor);
+      gz::msgs::Set(beamIdMarkerMaterial->mutable_diffuse(),
+                    beamIdMarkerColor);
+      gz::msgs::Set(beamIdMarkerMaterial->mutable_emissive(),
+                    beamIdMarkerColor);
       beamLowerQuantileConeMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
       beamUpperQuantileConeMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
       beamCapMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
+      beamIdMarker->set_action(gz::msgs::Marker::ADD_MODIFY);
     }
     else
     {
       beamLowerQuantileConeMarker->set_action(gz::msgs::Marker::DELETE_MARKER);
       beamUpperQuantileConeMarker->set_action(gz::msgs::Marker::DELETE_MARKER);
       beamCapMarker->set_action(gz::msgs::Marker::DELETE_MARKER);
+      beamIdMarker->set_action(gz::msgs::Marker::DELETE_MARKER);
     }
   }
 

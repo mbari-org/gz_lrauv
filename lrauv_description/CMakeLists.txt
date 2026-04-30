@@ -7,6 +7,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(lrauv_description)
 
+find_program(EMPY_EXECUTABLE NAMES empy em REQUIRED)
+
 include(CTest)
 #============================================================================
 # Hooks
@@ -22,15 +24,21 @@ configure_file(
 
 #============================================================================
 # Model Generation
-add_custom_command(
-  OUTPUT modelsdf
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/description_generator.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/models/tethys/model.sdf.in
-  ${CMAKE_CURRENT_BINARY_DIR}/models/tethys/model.sdf
-)
+set(TETHYS_MODEL_TEMPLATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/models/tethys/model.sdf.in)
+set(TETHYS_MODEL_OUTPUT
+  ${CMAKE_CURRENT_BINARY_DIR}/models/tethys/model.sdf)
 
-add_custom_target(generate_model ALL
-  DEPENDS modelsdf
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  ${TETHYS_MODEL_TEMPLATE})
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/models/tethys)
+
+execute_process(
+  COMMAND ${EMPY_EXECUTABLE}
+    -o ${TETHYS_MODEL_OUTPUT}
+    ${TETHYS_MODEL_TEMPLATE}
+  COMMAND_ERROR_IS_FATAL ANY
 )
 
 install(DIRECTORY
@@ -39,6 +47,6 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME})
 
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/models/tethys/model.sdf
+  ${TETHYS_MODEL_OUTPUT}
   DESTINATION share/${PROJECT_NAME}/models/tethys
 )

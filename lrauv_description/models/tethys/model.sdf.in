@@ -5,9 +5,52 @@
 -->
 
 <!--
-  This model is oriented so that it faces -X. When inserted into the world
-  (which uses ENU) with a zero pose, it faces West.
+  This model uses an FSK / FRD body frame:
+    X forward, Y starboard, Z down.
+  When spawning into Gazebo's ENU world, apply the fixed NED -> ENU rotation
+  once so zero attitude points North with Z down.
 -->
+
+@{
+total_mass = 147.5671
+buoyancy_z_offset = -0.007
+fluid_density = 1025
+base_link_dx = 2.0
+base_link_dy = 0.4
+
+battery_mass = 31.7307
+battery_inertial_pose = [0.536, 0, 0, 0, 0, 0]
+
+drop_weight_mass = 1.0
+drop_weight_pose = [-0.128, 0, 0, 0, 0, 0]
+
+fin_mass = 0.089896
+propeller_mass = 0.098986
+buoyancy_engine_mass = 0.3
+acoustic_transponder_mass = 0.01
+
+neutral_buoyancy_dx = 0.1
+neutral_buoyancy_dy = 0.1
+
+component_x_moments = (
+    battery_mass * battery_inertial_pose[0]
+    + drop_weight_mass * drop_weight_pose[0])
+component_mass = battery_mass + drop_weight_mass
+base_link_mass = total_mass - component_mass
+base_link_inertial_pose = [
+    -component_x_moments / base_link_mass, 0, 0, 0, 0, 0]
+base_link_dz = total_mass / (base_link_dx * base_link_dy * fluid_density)
+
+def neutral_buoyancy_size(mass):
+    dz = mass / (neutral_buoyancy_dx * neutral_buoyancy_dy * fluid_density)
+    return [neutral_buoyancy_dx, neutral_buoyancy_dy, dz]
+
+def fmt(value):
+    if isinstance(value, (list, tuple)):
+        return " ".join(f"{token:.15g}" for token in value)
+    return f"{value:.15g}"
+}@
+
 <sdf version="1.11">
   <model name="tethys">
     <enable_wind>true</enable_wind>
@@ -16,9 +59,9 @@
     <link name="base_link">
       <inertial>
         <!-- to offset battery CoM before getting real parameters for vehicle without battery -->
-        <pose>@calculated</pose>
+        <pose>@(fmt(base_link_inertial_pose))</pose>
         <!-- 146.5671 subtracted by battery mass -->
-        <mass>@calculated</mass>
+        <mass>@(fmt(base_link_mass))</mass>
         <!--<mass>146.5671</mass>-->
         <!-- TODO: Get inertial matrix of base link WITHOUT battery -->
         <inertia>
@@ -46,7 +89,12 @@
       </inertial>
 
       <collision name="main_body_buoyancy">
-        @base_link_collision
+        <pose>@(fmt([0, 0, buoyancy_z_offset, 0, 0, 0]))</pose>
+        <geometry>
+          <box>
+            <size>@(fmt([base_link_dx, base_link_dy, base_link_dz]))</size>
+          </box>
+        </geometry>
       </collision>
 
       <visual name="visual">
@@ -75,75 +123,67 @@
       </visual>
     </link>
 
-    <!-- starboard elevator -->
+    <!-- Elevator assembly (starboard + port) -->
     <link name="elevator_stbd">
       <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
       <inertial>
-        <pose>-0.008245 0 -0.071381 0 0 0</pose>
-        <mass>0.089896</mass>
+        <pose>-0.008245 0 0.10036 0 0 0</pose>
+        <mass>@(fmt(2.0 * fin_mass))</mass>
         <inertia>
-          <ixx>0.000230259968</ixx>
-          <ixy>-0.000000000096</ixy>
-          <ixz>-0.000030699196</ixz>
-          <iyy>0.000259630518</iyy>
-          <iyz>-0.000000000083</iyz>
-          <izz>0.000030551089</izz>
+          <ixx>0.005762519936</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.005821261036</iyy>
+          <iyz>0</iyz>
+          <izz>0.000061102178</izz>
         </inertia>
       </inertial>
 
       <collision name="elevator_stbd_buoyancy">
-        @neutral_buoyancy
-      </collision>
-
-      <visual name= "visual">
-        <pose>0 0 0 0 0 0</pose>
         <geometry>
-          <mesh>
-            <uri>meshes/rudder.STL</uri>
-          </mesh>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+          </box>
         </geometry>
-        <material>
-          <diffuse>1.0 1.0 1.0</diffuse>
-          <specular>1.0 1.0 1.0</specular>
-          <pbr>
-            <metal>
-              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
-              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
-              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
-              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
-            </metal>
-          </pbr>
-          <script>
-            <uri>materials/scripts/</uri>
-            <uri>materials/textures/</uri>
-            <name>tethys/Tethys_Diffuse</name>
-          </script>
-        </material>
-      </visual>
-    </link>
-
-    <!-- port elevator -->
-    <link name="elevator_port">
-      <pose relative_to="base_link" degrees="true">-0.49001 -0.10036 0 -90.0 0 0</pose>
-      <inertial>
-        <pose>-0.008245 0 -0.071381 0 0 0</pose>
-        <mass>0.089896</mass>
-        <inertia>
-          <ixx>0.000230259968</ixx>
-          <ixy>-0.000000000096</ixy>
-          <ixz>-0.000030699196</ixz>
-          <iyy>0.000259630518</iyy>
-          <iyz>-0.000000000083</iyz>
-          <izz>0.000030551089</izz>
-        </inertia>
-      </inertial>
+      </collision>
 
       <collision name="elevator_port_buoyancy">
-        @neutral_buoyancy
+        <pose degrees="true">0 0 0.20072 180 0 0</pose>
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+          </box>
+        </geometry>
       </collision>
 
-      <visual name= "visual">
+      <visual name="elevator_stbd_visual">
         <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/rudder.STL</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <specular>1.0 1.0 1.0</specular>
+          <pbr>
+            <metal>
+              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
+              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
+              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
+              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
+            </metal>
+          </pbr>
+          <script>
+            <uri>materials/scripts/</uri>
+            <uri>materials/textures/</uri>
+            <name>tethys/Tethys_Diffuse</name>
+          </script>
+        </material>
+      </visual>
+
+      <visual name="elevator_port_visual">
+        <pose degrees="true">0 0 0.20072 180 0 0</pose>
         <geometry>
           <mesh>
             <uri>meshes/rudder.STL</uri>
@@ -169,27 +209,40 @@
       </visual>
     </link>
 
-    <!-- upper rudder -->
+    <!-- Rudder assembly (upper + lower) -->
     <link name="rudder_upper">
       <pose relative_to="base_link">-0.49001 0 -0.10036 0 0 0</pose>
       <inertial>
-        <pose>-0.008245 0 -0.071381 0 0 0</pose>
-        <mass>0.089896</mass>
+        <pose>-0.008245 0 0.10036 0 0 0</pose>
+        <mass>@(fmt(2.0 * fin_mass))</mass>
         <inertia>
-          <ixx>0.000230259968</ixx>
-          <ixy>-0.000000000096</ixy>
-          <ixz>-0.000030699196</ixz>
-          <iyy>0.000259630518</iyy>
-          <iyz>-0.000000000083</iyz>
-          <izz>0.000030551089</izz>
+          <ixx>0.005762519936</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.005821261036</iyy>
+          <iyz>0</iyz>
+          <izz>0.000061102178</izz>
         </inertia>
       </inertial>
 
       <collision name="rudder_upper_buoyancy">
-        @neutral_buoyancy
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+          </box>
+        </geometry>
       </collision>
 
-      <visual name= "visual">
+      <collision name="rudder_lower_buoyancy">
+        <pose degrees="true">0 0 0.20072 180 0 0</pose>
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="rudder_upper_visual">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
@@ -214,30 +267,9 @@
           </script>
         </material>
       </visual>
-    </link>
 
-    <!-- lower rudder -->
-    <link name="rudder_lower">
-      <pose relative_to="base_link" degrees="true">-0.49001 0 0.10036 180 0 0</pose>
-      <inertial>
-        <pose>-0.008245 0 -0.071381 0 0 0</pose>
-        <mass>0.089896</mass>
-        <inertia>
-          <ixx>0.000230259968</ixx>
-          <ixy>-0.000000000096</ixy>
-          <ixz>-0.000030699196</ixz>
-          <iyy>0.000259630518</iyy>
-          <iyz>-0.000000000083</iyz>
-          <izz>0.000030551089</izz>
-        </inertia>
-      </inertial>
-
-      <collision name="rudder_lower_buoyancy">
-        @neutral_buoyancy
-      </collision>
-
-      <visual name= "visual">
-        <pose>0 0 0 0 0 0</pose>
+      <visual name="rudder_lower_visual">
+        <pose degrees="true">0 0 0.20072 180 0 0</pose>
         <geometry>
           <mesh>
             <uri>meshes/rudder.STL</uri>
@@ -268,7 +300,7 @@
       <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
       <inertial>
         <pose>-0.020426 0.000003 -0.000001 0 0 0</pose>
-        <mass>0.098986</mass>
+        <mass>@(fmt(propeller_mass))</mass>
         <inertia>
           <ixx>0.000116947629</ixx>
           <ixy>0.000000001573</ixy>
@@ -280,7 +312,11 @@
       </inertial>
 
       <collision name="propeller_buoyancy">
-        @neutral_buoyancy
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(propeller_mass)))</size>
+          </box>
+        </geometry>
       </collision>
 
       <visual name= "visual">
@@ -315,11 +351,10 @@
          Additional collision requires buoyancy volume recalculation. -->
     <link name="battery">
       <!--TODO: On hold till mesh center adjusted to aft dome, then it will be 0.563, 0, 0.024.-->
-
+      <pose relative_to="base_link">@(fmt(battery_inertial_pose))</pose>
       <inertial>
         <!-- Non-zero y creates roll. Not fun to tune without actual base link inertia minus battery-->
-        <pose>0.536 0 0 0 0 0</pose>
-        <mass>31.7307</mass>
+        <mass>@(fmt(battery_mass))</mass>
         <inertia>
           <ixx>0.2327</ixx>
           <ixy>0</ixy>
@@ -345,7 +380,7 @@
 
     <link name="buoyancy_engine">
       <!-- TODO: Determine location of buoyancy engine -->
-      <pose>-0.137 0 0 0 0 0</pose>
+      <pose relative_to="base_link">-0.137 0 0 0 0 0</pose>
 
       <!-- TODO: Remove inertial and collision
 
@@ -360,8 +395,7 @@
 
       -->
       <inertial>
-        <pose>0 0 0 0 0 0</pose>
-        <mass>0.3</mass>
+        <mass>@(fmt(buoyancy_engine_mass))</mass>
         <inertia>
           <ixx>0.000143971303</ixx>
           <ixy>0.000000000008</ixy>
@@ -372,16 +406,20 @@
         </inertia>
       </inertial>
       <collision name="buoyancy_engine">
-        @neutral_buoyancy
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(buoyancy_engine_mass)))</size>
+          </box>
+        </geometry>
       </collision>
     </link>
 
     <link name="acoustic_transponder">
-      <!-- This link creates an ENU reference frame-->
-      <pose degrees="true">0 0 0 0 0 180</pose>
+      <!-- This link creates an ENU reference frame from the FSK base link -->
+      <pose degrees="true">0 0 0 180 0 90</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <mass>0.01</mass>
+        <mass>@(fmt(acoustic_transponder_mass))</mass>
         <inertia>
           <ixx>0.000143971303</ixx>
           <ixy>0.000000000008</ixy>
@@ -392,7 +430,11 @@
         </inertia>
       </inertial>
       <collision name="acoustic_transponder_col">
-        @neutral_buoyancy
+        <geometry>
+          <box>
+            <size>@(fmt(neutral_buoyancy_size(acoustic_transponder_mass)))</size>
+          </box>
+        </geometry>
       </collision>
     </link>
 
@@ -413,27 +455,11 @@
       <parent>base_link</parent>
       <child>elevator_stbd</child>
       <axis>
-        <xyz>0 1 0</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
-        <limit>
-          <lower>-0.261799</lower>
-          <upper>0.261799</upper>
-          <effort>1</effort>
-          <velocity>1</velocity>
-        </limit>
-      </axis>
-    </joint>
-
-    <joint name="elevator_port_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 -0.10036 0 -90.0 0 0</pose>
-      <parent>base_link</parent>
-      <child>elevator_port</child>
-      <axis>
-        <xyz>0 1 0</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
-        <mimic joint="elevator_stbd_joint" axis="axis">
-          <multiplier>-1</multiplier>
-          <offset>0</offset>
-          <reference>0</reference>
-        </mimic>
+        <xyz>0 0 -1</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+          <friction>0.001</friction>
+        </dynamics>
         <limit>
           <lower>-0.261799</lower>
           <upper>0.261799</upper>
@@ -448,27 +474,11 @@
       <parent>base_link</parent>
       <child>rudder_upper</child>
       <axis>
-        <xyz>0 0 1</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
-        <limit>
-          <lower>-0.261799</lower>
-          <upper>0.261799</upper>
-          <effort>1</effort>
-          <velocity>1</velocity>
-        </limit>
-      </axis>
-    </joint>
-
-    <joint name="rudder_lower_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 0 0.10036 180.0 0 0</pose>
-      <parent>base_link</parent>
-      <child>rudder_lower</child>
-      <axis>
-        <xyz>0 0 1</xyz> <!-- in base_link frame; TODO(andermi) figure out sign on rotation -->
-        <mimic joint="rudder_upper_joint" axis="axis">
-          <multiplier>-1</multiplier>
-          <offset>0</offset>
-          <reference>0</reference>
-        </mimic>
+        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+          <friction>0.001</friction>
+        </dynamics>
         <limit>
           <lower>-0.261799</lower>
           <upper>0.261799</upper>
@@ -495,28 +505,28 @@
 
     <!-- positive joint values move mass forward -->
     <joint name="battery_joint" type="prismatic">
-      <pose relative_to="base_link">0 0 0 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(battery_inertial_pose))</pose>
       <parent>base_link</parent>
       <child>battery</child>
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
           <!-- TODO(andermi) WORKAROUND FOR KNOWN BUG IN GZ SIM -->
-          <lower>-0.03</lower>
-          <upper>0.03</upper>
+          <lower>-0.035</lower>
+          <upper>0.035</upper>
           <!--effort>1e6</effort-->
           <effort>inf</effort>
           <!--velocity>0.0007</velocity-->
-          <velocity>1</velocity>
+          <!-- <velocity>1</velocity> -->
         </limit>
       </axis>
     </joint>
 
     <!-- Drop weight -->
     <link name="drop_weight">
-      <pose>-0.128 0 0 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(drop_weight_pose))</pose>
       <inertial>
-        <mass>1</mass>
+        <mass>@(fmt(drop_weight_mass))</mass>
         <inertia>
           <ixx>0.000143971303</ixx>
           <iyy>0.000140915448</iyy>
