@@ -463,9 +463,8 @@ void TethysCommPlugin::SetupEntities(
 void TethysCommPlugin::CommandCallback(
   const lrauv_gazebo_plugins::msgs::LRAUVCommand &_msg)
 {
-  // ask PostUpdate thread to stamp this in nearest sim time
-  // and start state feedback publish timer
-  this->startPubClock.store(true, std::memory_order_release);
+  // Track command arrival; PostUpdate owns deterministic feedback scheduling.
+  this->latestCmdEpoch.fetch_add(1, std::memory_order_acq_rel);
 
   if (this->debugPrintout)
   {
@@ -747,26 +746,37 @@ void TethysCommPlugin::PostUpdate(
   // data
 
 
-  // If we got a command, start/reset timer to publish state feedback
-  if (this->startPubClock.load(std::memory_order_acquire))
+  const std::uint64_t latestCmdEpoch =
+    this->latestCmdEpoch.load(std::memory_order_acquire);
+
+  // First command after previous feedback opens a fixed publish window.
+  if (!this->feedbackWindowOpen &&
+      latestCmdEpoch > this->lastFeedbackCmdEpoch)
   {
-    // gzdbg << "[" << this->ns << "][" << now_sec.count() << "," << frac_nsec.count() << "] got command so publish half period after" << std::endl;
-    this->lastCmdTimeNs = now_nsec;
-    this->needPublish = true;
-    this->startPubClock.store(false, std::memory_order_release);
+    this->feedbackWindowOpen = true;
+    this->feedbackWindowStartNs = now_nsec;
+    this->feedbackDeadlineNs = now_nsec + this->pubDelayNs;
   }
 
-  std::chrono::nanoseconds delay = this->needPublish ? this->pubDelayNs : 400ms;  // half LRAUV cycle after command, or full cycle otherwise
-
-  // we got a command, so check timer to publish state feedback
-  // try to publish every cycle (offset by half a cycle)
-  //if (this->needPublish &&
-  if ((now_nsec - this->lastCmdTimeNs) >= delay)
+  bool publishState = false;
+  if (this->feedbackWindowOpen &&
+      now_nsec > this->feedbackWindowStartNs &&
+      now_nsec >= this->feedbackDeadlineNs)
   {
-    // gzdbg << "[" << this->ns << "][" << now_sec.count() << "," << frac_nsec.count() << "] do publish [delay was " << delay.count() << "]" << std::endl;
+    publishState = true;
+    this->feedbackWindowOpen = false;
+    this->lastFeedbackCmdEpoch = latestCmdEpoch;
+  }
+  else if (!this->feedbackWindowOpen &&
+           (now_nsec - this->lastStatePubTimeNs) >= this->heartbeatPeriodNs)
+  {
+    publishState = true;
+  }
+
+  if (publishState)
+  {
     this->statePub.Publish(stateMsg);
-    this->needPublish = false;
-    this->lastCmdTimeNs = now_nsec;
+    this->lastStatePubTimeNs = now_nsec;
 
     // try to print debug no faster than 1Hz
     if (this->debugPrintout &&

@@ -23,7 +23,9 @@
 #ifndef TETHYS_COMM_PLUGIN_H_
 #define TETHYS_COMM_PLUGIN_H_
 
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 
 #include <gz/sim/Link.hh>
 #include <gz/sim/System.hh>
@@ -109,14 +111,26 @@ namespace tethys
     /// Enable debug printout
     private: bool debugPrintout = false;
 
-    /// Flag for starting timer to publish state feedback after receiving command
-    private: std::atomic<bool> startPubClock{false};
+    /// Monotonically increasing count of received commands.
+    private: std::atomic<std::uint64_t> latestCmdEpoch{0};
 
-    /// Flag for checking timer to publish state feedback
-    private: bool needPublish{false};
+    /// The latest command epoch that has had feedback published.
+    private: std::uint64_t lastFeedbackCmdEpoch{0};
 
-    /// Start of timer to publish state feedback
-    private: std::chrono::nanoseconds lastCmdTimeNs{0s};
+    /// True while waiting to publish command-correlated feedback.
+    private: bool feedbackWindowOpen{false};
+
+    /// Sim time when current feedback window started.
+    private: std::chrono::nanoseconds feedbackWindowStartNs{0s};
+
+    /// Sim time when current feedback window should publish.
+    private: std::chrono::nanoseconds feedbackDeadlineNs{0s};
+
+    /// Last sim time when any state message was published.
+    private: std::chrono::nanoseconds lastStatePubTimeNs{0s};
+
+    /// Heartbeat publish period when there are no pending command windows.
+    private: std::chrono::nanoseconds heartbeatPeriodNs{400ms};
 
     /// Duration to wait after receiving command to publish state feedback
     private: std::chrono::nanoseconds pubDelayNs{180ms};  // half of LRAUV cycle
