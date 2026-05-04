@@ -259,7 +259,7 @@
           <always_on>1</always_on>
           <update_rate>10</update_rate>
           <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
-          <pose degrees="true">0 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
+          <pose degrees="true">0 0 0 180 0 90</pose> <!-- TODO(andermi) find correct mounting position -->
           <topic>/tethys/ahrs/magnetometer</topic>
         </sensor>
       </experimental:params>

@@ -1,5 +1,5 @@
 
-material UrbanTile/Tethys_Diffuse
+material tethys/Tethys_Diffuse
 {
   technique
   {
@@ -12,7 +12,7 @@ material UrbanTile/Tethys_Diffuse
       }
     }
   }
-material UrbanTile/Tethys_Diffuse
+material tethys/Tethys_Diffuse
 {
   technique
   {
@@ -25,7 +25,7 @@ material UrbanTile/Tethys_Diffuse
       }
     }
   }
-material UrbanTile/Tethys_Diffuse
+material tethys/Tethys_Diffuse
 {
   technique
   {
@@ -38,7 +38,7 @@ material UrbanTile/Tethys_Diffuse
       }
     }
   }
-material UrbanTile/Tethys_Diffuse
+material tethys/Tethys_Diffuse
 {
   technique
   {
