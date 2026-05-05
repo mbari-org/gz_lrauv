@@ -100,10 +100,10 @@ def fmt(value):
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/auv_body.STL</uri>
+            <uri>meshes/auv_body.gltf</uri>
           </mesh>
         </geometry>
-        <material>
+        <!-- <material>
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0 1.0</specular>
           <pbr>
@@ -119,7 +119,7 @@ def fmt(value):
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
           </script>
-        </material>
+        </material> -->
       </visual>
     </link>
 
@@ -166,7 +166,7 @@ def fmt(value):
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <pbr>
+          <!-- <pbr>
             <metal>
               <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
               <normal_map>materials/textures/Tethys_Normal.png</normal_map>
@@ -178,7 +178,7 @@ def fmt(value):
             <uri>materials/scripts/</uri>
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
-          </script>
+          </script> -->
         </material>
       </visual>
 
@@ -192,7 +192,7 @@ def fmt(value):
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <pbr>
+          <!-- <pbr>
             <metal>
               <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
               <normal_map>materials/textures/Tethys_Normal.png</normal_map>
@@ -204,7 +204,7 @@ def fmt(value):
             <uri>materials/scripts/</uri>
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
-          </script>
+          </script> -->
         </material>
       </visual>
     </link>
@@ -252,7 +252,7 @@ def fmt(value):
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <pbr>
+          <!-- <pbr>
             <metal>
               <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
               <normal_map>materials/textures/Tethys_Normal.png</normal_map>
@@ -264,7 +264,7 @@ def fmt(value):
             <uri>materials/scripts/</uri>
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
-          </script>
+          </script> -->
         </material>
       </visual>
 
@@ -278,7 +278,7 @@ def fmt(value):
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <pbr>
+          <!-- <pbr>
             <metal>
               <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
               <normal_map>materials/textures/Tethys_Normal.png</normal_map>
@@ -290,7 +290,7 @@ def fmt(value):
             <uri>materials/scripts/</uri>
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
-          </script>
+          </script> -->
         </material>
       </visual>
     </link>
@@ -329,7 +329,7 @@ def fmt(value):
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <pbr>
+          <!-- <pbr>
             <metal>
               <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
               <normal_map>materials/textures/Tethys_Normal.png</normal_map>
@@ -341,7 +341,7 @@ def fmt(value):
             <uri>materials/scripts/</uri>
             <uri>materials/textures/</uri>
             <name>tethys/Tethys_Diffuse</name>
-          </script>
+          </script> -->
         </material>
       </visual>
     </link>
