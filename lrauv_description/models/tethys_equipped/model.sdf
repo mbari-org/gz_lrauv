@@ -268,21 +268,17 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
         <joint_name>elevator_stbd_joint</joint_name>
-        <p_gain>1.2</p_gain>
-        <i_gain>0.2</i_gain>
-        <d_gain>0.0</d_gain>
-        <cmd_max>1.0</cmd_max>
-        <cmd_min>-1.0</cmd_min>
+        <use_velocity_commands>true</use_velocity_commands>
+        <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
+        <cmd_max>0.13090</cmd_max>
       </plugin>
       <plugin
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
         <joint_name>rudder_upper_joint</joint_name>
-        <p_gain>1.0</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>0.0</d_gain>
-        <cmd_max>1.0</cmd_max>
-        <cmd_min>-1.0</cmd_min>
+        <use_velocity_commands>true</use_velocity_commands>
+        <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
+        <cmd_max>0.13090</cmd_max>
       </plugin>
       <plugin
         filename="gz-sim-thruster-system"
@@ -422,32 +418,32 @@
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
         <kPabsP>-0.191601</kPabsP>
-        <!--mPR>33.463086</mPR-->
+        <mPR>33.463086</mPR> <!---->
         <mQabsQ>-632.698957</mQabsQ>
-        <!--mUQ>-61.182063</mUQ-->
-        <!--mUW>105.660262</mUW-->
+        <mUQ>-61.182063</mUQ> <!---->
+        <mUW>105.660262</mUW> <!---->
         <mWabsW>-58.113144</mWabsW>
-        <!--nPQ>-33.463086</nPQ-->
+        <nPQ>-33.463086</nPQ> <!---->
         <nRabsR>-632.698957</nRabsR>
-        <!--nUR>-61.182063</nUR-->
-        <!--nUV>-105.660262</nUV-->
+        <nUR>-61.182063</nUR> <!---->
+        <nUV>-105.660262</nUV> <!---->
         <nVabsV>58.113144</nVabsV>
-        <!--xQQ>7.117842</xQQ-->
-        <!--xRR>7.117842</xRR-->
-        <!--xVR>126.324739</xVR-->
-        <!--xVV>-54.370919</xVV-->
-        <!--xWQ>-126.324739</xWQ-->
-        <!--xWW>-54.370919</xWW-->
+        <xQQ>7.117842</xQQ> <!---->
+        <xRR>7.117842</xRR> <!---->
+        <xVR>126.324739</xVR> <!---->
+        <xVV>-54.370919</xVV> <!---->
+        <xWQ>-126.324739</xWQ> <!---->
+        <xWW>-54.370919</xWW> <!---->
         <xUabsU>-6.2282</xUabsU>
         <yRabsR>0.000000</yRabsR>
-        <!--yUR>8.719853</yUR-->
-        <!--yUV>-23.954759</yUV-->
+        <yUR>8.719853</yUR> <!---->
+        <yUV>-23.954759</yUV> <!---->
         <yVabsV>-601.274653</yVabsV>
-        <!--yWP>126.324739</yWP-->
+        <yWP>126.324739</yWP> <!---->
         <zQabsQ>0.000000</zQabsQ>
-        <!--zUQ>-8.719853</zUQ-->
-        <!--zUW>-23.954759</zUW-->
-        <!--zVP>-126.324739</zVP-->
+        <zUQ>-8.719853</zUQ> <!---->
+        <zUW>-23.954759</zUW> <!---->
+        <zVP>-126.324739</zVP> <!---->
         <zWabsW>-601.274653</zWabsW>
         <water_density>1025</water_density>
         <disable_coriolis>true</disable_coriolis>

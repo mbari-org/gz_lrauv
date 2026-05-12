@@ -48,16 +48,29 @@ using namespace tethys;
 
 namespace
 {
-constexpr double kMassShifterSoftCmdLower = -0.0295;
-constexpr double kMassShifterSoftCmdUpper = 0.0295;
+constexpr double kMassShifterSoftCmdLower = -0.03;  // meters
+constexpr double kMassShifterSoftCmdUpper = 0.03;  // meters
 
 double sanitizeMassShifterCmd(double _cmd)
 {
   if (std::isnan(_cmd))
     return 0.0;
 
-  // Keep a small margin from prismatic hard stops to reduce DART lock-up risk.
+  // Keep a small margin from hard stops to reduce DART lock-up risk.
   return std::clamp(_cmd, kMassShifterSoftCmdLower, kMassShifterSoftCmdUpper);
+}
+
+
+constexpr double kFinSoftCmdLower = -0.261799;  // ~-15 deg in radians
+constexpr double kFinSoftCmdUpper = 0.261799;   // ~15 deg in radians
+
+double sanitizeFinCmd(double _cmd)
+{
+  if (std::isnan(_cmd))
+    return 0.0;
+
+  // Keep a small margin from hard stops to reduce DART lock-up risk.
+  return std::clamp(_cmd, kFinSoftCmdLower, kFinSoftCmdUpper);
 }
 }
 
@@ -474,25 +487,27 @@ void TethysCommPlugin::CommandCallback(
 
   // Rudder
   gz::msgs::Double rudderAngMsg;
-  if (std::isnan(_msg.rudderangleaction_()))
+  const double rudderAngCmd = sanitizeFinCmd(_msg.rudderangleaction_());
+  if (std::isnan(rudderAngCmd))
   {
     rudderAngMsg.set_data(0.0);
   }
   else
   {
-    rudderAngMsg.set_data(_msg.rudderangleaction_());
+    rudderAngMsg.set_data(rudderAngCmd);
   }
   this->rudderPub.Publish(rudderAngMsg);
 
   // Elevator
   gz::msgs::Double elevatorAngMsg;
-  if (std::isnan(_msg.elevatorangleaction_()))
+  const double elevatorAngCmd = sanitizeFinCmd(_msg.elevatorangleaction_());
+  if (std::isnan(elevatorAngCmd))
   {
     elevatorAngMsg.set_data(0.0);
   }
   else
   {
-    elevatorAngMsg.set_data(_msg.elevatorangleaction_());
+    elevatorAngMsg.set_data(elevatorAngCmd);
   }
   this->elevatorPub.Publish(elevatorAngMsg);
 

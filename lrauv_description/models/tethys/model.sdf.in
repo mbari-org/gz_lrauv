@@ -461,10 +461,11 @@ def fmt(value):
           <friction>0.001</friction>
         </dynamics>
         <limit>
-          <lower>-0.261799</lower>
-          <upper>0.261799</upper>
-          <effort>1</effort>
-          <velocity>1</velocity>
+          <lower>-0.3</lower>
+          <upper>0.3</upper>
+          <effort>inf</effort>
+          <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
+          <!--velocity>0.13090</velocity-->
         </limit>
       </axis>
     </joint>
@@ -480,10 +481,11 @@ def fmt(value):
           <friction>0.001</friction>
         </dynamics>
         <limit>
-          <lower>-0.261799</lower>
-          <upper>0.261799</upper>
-          <effort>1</effort>
-          <velocity>1</velocity>
+          <lower>-0.3</lower>
+          <upper>0.3</upper>
+          <effort>inf</effort>
+          <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
+          <!--velocity>0.13090</velocity-->
         </limit>
       </axis>
     </joint>
