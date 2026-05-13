@@ -500,7 +500,8 @@ def fmt(value):
           <lower>-1e+12</lower>
           <upper>1e+12</upper>
           <effort>1e6</effort>
-          <velocity>1</velocity>
+          <!-- 1.5 m/s / 0.0318309 m/rad ~= 47.1239 rad/s -->
+          <velocity>47.1239</velocity>
         </limit>
       </axis>
     </joint>
