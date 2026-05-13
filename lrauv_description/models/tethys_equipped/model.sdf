@@ -308,14 +308,14 @@
         <air_density>1025</air_density>
         <cla>4.13</cla>
         <cla_stall>-1.1</cla_stall>
-        <cda>0.2</cda>
+        <cda>0.34</cda>
         <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.17</alpha_stall>
+        <alpha_stall>0.523599</alpha_stall>
         <a0>0</a0>
-        <area>0.0244</area>
-        <!-- Link's Y is perpendicular to the control surface -->
+        <area>0.012189</area>
+        <!-- Upper rudder fin frame: +X forward, +Y starboard, +Z down -->
         <upward>0 1 0</upward>
-        <!-- Link's X is pointing towards the back -->
+        <!-- +X is the fin chord / vehicle forward direction -->
         <forward>1 0 0</forward>
         <link_name>rudder_upper</link_name>
         <cp>-0.008245 0 -0.071381</cp>
@@ -327,14 +327,14 @@
         <air_density>1025</air_density>
         <cla>4.13</cla>
         <cla_stall>-1.1</cla_stall>
-        <cda>0.2</cda>
+        <cda>0.34</cda>
         <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.17</alpha_stall>
+        <alpha_stall>0.523599</alpha_stall>
         <a0>0</a0>
-        <area>0.0244</area>
-        <!-- Link's Y is perpendicular to the control surface -->
+        <area>0.012189</area>
+        <!-- Lower rudder fin frame: +X forward, +Y port, +Z up -->
         <upward>0 -1 0</upward>
-        <!-- Link's X is pointing towards the back -->
+        <!-- +X is the fin chord / vehicle forward direction -->
         <forward>1 0 0</forward>
         <link_name>rudder_upper</link_name>
         <cp>-0.008245 0 0.272101</cp>
@@ -346,14 +346,14 @@
         <air_density>1025</air_density>
         <cla>4.13</cla>
         <cla_stall>-1.1</cla_stall>
-        <cda>0.2</cda>
+        <cda>0.34</cda>
         <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.17</alpha_stall>
+        <alpha_stall>0.523599</alpha_stall>
         <a0>0</a0>
-        <area>0.0244</area>
-        <!-- Link's Y is perpendicular to the control surface -->
+        <area>0.012189</area>
+        <!-- Starboard elevator fin frame: +X forward, +Y down, +Z port -->
         <upward>0 1 0</upward>
-        <!-- Link's X is pointing towards the back -->
+        <!-- +X is the fin chord / vehicle forward direction -->
         <forward>1 0 0</forward>
         <link_name>elevator_stbd</link_name>
         <cp>-0.008245 0 -0.071381</cp>
@@ -365,14 +365,14 @@
         <air_density>1025</air_density>
         <cla>4.13</cla>
         <cla_stall>-1.1</cla_stall>
-        <cda>0.2</cda>
+        <cda>0.34</cda>
         <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.17</alpha_stall>
+        <alpha_stall>0.523599</alpha_stall>
         <a0>0</a0>
-        <area>0.0244</area>
-        <!-- Link's Y is perpendicular to the control surface -->
+        <area>0.012189</area>
+        <!-- Port elevator fin frame: +X forward, +Y up, +Z starboard -->
         <upward>0 -1 0</upward>
-        <!-- Link's X is pointing towards the back -->
+        <!-- +X is the fin chord / vehicle forward direction -->
         <forward>1 0 0</forward>
         <link_name>elevator_stbd</link_name>
         <cp>-0.008245 0 0.272101</cp>
