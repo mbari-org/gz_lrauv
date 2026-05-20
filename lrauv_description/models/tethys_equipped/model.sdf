@@ -285,12 +285,34 @@
         name="gz::sim::systems::Thruster">
         <namespace>tethys</namespace>
         <joint_name>propeller_joint</joint_name>
-        <!-- Be sure to update TethysComm when updating these numbers -->
-        <thrust_coefficient>0.004312328425753156</thrust_coefficient>
+        <!-- Be sure to update TethysComm when updating these numbers.
+             Updated for propPitch = 0.05 m/rad. -->
+        <thrust_coefficient>0.06773808509582129</thrust_coefficient>
         <fluid_density>1025</fluid_density>
-        <propeller_diameter>0.2</propeller_diameter>
+        <propeller_diameter>0.337</propeller_diameter>
         <velocity_control>true</velocity_control>
         <use_angvel_cmd>true</use_angvel_cmd>
+      </plugin>
+      <plugin
+        filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+        <link_name>tailcone2_rudder</link_name>
+        <air_density>1025</air_density>
+        <radial_symmetry>true</radial_symmetry>
+        <reversible>false</reversible>
+        <!-- Best-effort tailcone / cowl crossflow model using legacy tail params:
+             stallAngle=30 deg, finArea=0.0299 m^2, CDc=0.723, dCL=4.8 -->
+        <area>0.0299</area>
+        <a0>0.0</a0>
+        <cla>4.8</cla>
+        <cda>0.723</cda>
+        <cma>0.0</cma>
+        <alpha_stall>0.523598775598299</alpha_stall>
+        <cla_stall>0.0</cla_stall>
+        <cda_stall>0.723</cda_stall>
+        <cp>-0.114408906000 0 0</cp>
+        <forward>1 0 0</forward>
+        <upward>0 0 -1</upward>
       </plugin>
       <plugin
         filename="gz-sim-joint-position-controller-system"
@@ -299,83 +321,6 @@
         <use_velocity_commands>true</use_velocity_commands>
         <!-- TODO(andermi) WORKAROUND FOR KNOWN BUG IN GZ SIM -->
         <cmd_max>0.0007</cmd_max>
-      </plugin>
-      <!-- Lift and drag -->
-      <!-- Upper rudder -->
-      <plugin
-        filename="gz-sim-lift-drag-system"
-        name="gz::sim::systems::LiftDrag">
-        <air_density>1025</air_density>
-        <cla>4.13</cla>
-        <cla_stall>-1.1</cla_stall>
-        <cda>0.34</cda>
-        <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.523599</alpha_stall>
-        <a0>0</a0>
-        <area>0.012189</area>
-        <!-- Upper rudder fin frame: +X forward, +Y starboard, +Z down -->
-        <upward>0 1 0</upward>
-        <!-- +X is the fin chord / vehicle forward direction -->
-        <forward>1 0 0</forward>
-        <link_name>rudder_upper</link_name>
-        <cp>-0.008245 0 -0.071381</cp>
-      </plugin>
-      <!-- Lower rudder -->
-      <plugin
-        filename="gz-sim-lift-drag-system"
-        name="gz::sim::systems::LiftDrag">
-        <air_density>1025</air_density>
-        <cla>4.13</cla>
-        <cla_stall>-1.1</cla_stall>
-        <cda>0.34</cda>
-        <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.523599</alpha_stall>
-        <a0>0</a0>
-        <area>0.012189</area>
-        <!-- Lower rudder fin frame: +X forward, +Y port, +Z up -->
-        <upward>0 -1 0</upward>
-        <!-- +X is the fin chord / vehicle forward direction -->
-        <forward>1 0 0</forward>
-        <link_name>rudder_upper</link_name>
-        <cp>-0.008245 0 0.272101</cp>
-      </plugin>
-      <!-- Starboard elevator -->
-      <plugin
-        filename="gz-sim-lift-drag-system"
-        name="gz::sim::systems::LiftDrag">
-        <air_density>1025</air_density>
-        <cla>4.13</cla>
-        <cla_stall>-1.1</cla_stall>
-        <cda>0.34</cda>
-        <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.523599</alpha_stall>
-        <a0>0</a0>
-        <area>0.012189</area>
-        <!-- Starboard elevator fin frame: +X forward, +Y down, +Z port -->
-        <upward>0 1 0</upward>
-        <!-- +X is the fin chord / vehicle forward direction -->
-        <forward>1 0 0</forward>
-        <link_name>elevator_stbd</link_name>
-        <cp>-0.008245 0 -0.071381</cp>
-      </plugin>
-      <!-- Port elevator -->
-      <plugin
-        filename="gz-sim-lift-drag-system"
-        name="gz::sim::systems::LiftDrag">
-        <air_density>1025</air_density>
-        <cla>4.13</cla>
-        <cla_stall>-1.1</cla_stall>
-        <cda>0.34</cda>
-        <cda_stall>0.03</cda_stall>
-        <alpha_stall>0.523599</alpha_stall>
-        <a0>0</a0>
-        <area>0.012189</area>
-        <!-- Port elevator fin frame: +X forward, +Y up, +Z starboard -->
-        <upward>0 -1 0</upward>
-        <!-- +X is the fin chord / vehicle forward direction -->
-        <forward>1 0 0</forward>
-        <link_name>elevator_stbd</link_name>
-        <cp>-0.008245 0 0.272101</cp>
       </plugin>
       <!-- Interface with LRAUV Main Vehicle Application for each vehicle -->
       <plugin
@@ -417,36 +362,36 @@
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
-        <kPabsP>-0.191601</kPabsP>
-        <mPR>33.463086</mPR> <!---->
+        <kPabsP>-0.287619</kPabsP>
+        <mPR>1541.634893</mPR> <!---->
         <mQ>-50.0</mQ>
-        <mQabsQ>-632.698957</mQabsQ>
-        <mUQ>-61.182063</mUQ> <!---->
-        <mUW>105.660262</mUW> <!---->
-        <mWabsW>-58.113144</mWabsW>
-        <nPQ>-33.463086</nPQ> <!---->
+        <mQabsQ>-2212.743973</mQabsQ>
+        <mUQ>-457.014465</mUQ> <!---->
+        <mUW>821.416574</mUW> <!---->
+        <mWabsW>-451.779116</mWabsW>
+        <nPQ>-1541.634893</nPQ> <!---->
         <nR>-125.0</nR>
-        <nRabsR>-632.698957</nRabsR>
-        <nUR>-61.182063</nUR> <!---->
-        <nUV>-105.660262</nUV> <!---->
-        <nVabsV>58.113144</nVabsV>
-        <xQQ>7.117842</xQQ> <!---->
-        <xRR>7.117842</xRR> <!---->
-        <xVR>126.324739</xVR> <!---->
-        <xVV>-54.370919</xVV> <!---->
-        <xWQ>-126.324739</xWQ> <!---->
-        <xWW>-54.370919</xWW> <!---->
+        <nRabsR>-2212.743973</nRabsR>
+        <nUR>-457.014465</nUR> <!---->
+        <nUV>-821.416574</nUV> <!---->
+        <nVabsV>451.779116</nVabsV>
+        <xQQ>98.390533</xQQ> <!---->
+        <xRR>98.390533</xRR> <!---->
+        <xVR>970.290157</xVR> <!---->
+        <xVV>-65.220952</xVV> <!---->
+        <xWQ>-970.290157</xWQ> <!---->
+        <xWW>-65.220952</xWW> <!---->
         <xUabsU>-6.2282</xUabsU>
         <yRabsR>0.000000</yRabsR>
-        <yUR>8.719853</yUR> <!---->
-        <yUV>-23.954759</yUV> <!---->
-        <yVabsV>-601.274653</yVabsV>
-        <yWP>126.324739</yWP> <!---->
+        <yUR>75.425595</yUR> <!---->
+        <yUV>-133.344014</yUV> <!---->
+        <yVabsV>-854.971671</yVabsV>
+        <yWP>970.290157</yWP> <!---->
         <zQabsQ>0.000000</zQabsQ>
-        <zUQ>-8.719853</zUQ> <!---->
-        <zUW>-23.954759</zUW> <!---->
-        <zVP>-126.324739</zVP> <!---->
-        <zWabsW>-601.274653</zWabsW>
+        <zUQ>-75.425595</zUQ> <!---->
+        <zUW>-133.344014</zUW> <!---->
+        <zVP>-970.290157</zVP> <!---->
+        <zWabsW>-854.971671</zWabsW>
         <water_density>1025</water_density>
         <disable_coriolis>true</disable_coriolis>
         <disable_added_mass>true</disable_added_mass>

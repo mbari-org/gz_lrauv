@@ -1,0 +1,162 @@
+{
+    "asset": {
+        "generator": "SOLIDWORKSGLTF",
+        "version": "2.0"
+    },
+    "scene": 0,
+    "scenes": [
+        {
+            "name": "Default",
+            "nodes": [
+                0,
+                1
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "matrix": [
+                0.7700209842122777,
+                -2.7755575615628914e-17,
+                -0.6380185607588194,
+                0.0,
+                -0.3672458357605789,
+                0.8177288033625533,
+                -0.4432269173547119,
+                0.0,
+                0.5217261542124079,
+                0.5756036867074834,
+                0.6296683379839614,
+                0.0,
+                0.9693564995550714,
+                1.2060594913825942,
+                1.3193408858089795,
+                1.0
+            ],
+            "camera": 0,
+            "name": "current camera"
+        },
+        {
+            "mesh": 0,
+            "name": "TAILCONE2"
+        }
+    ],
+    "cameras": [
+        {
+            "type": "orthographic",
+            "orthographic": {
+                "xmag": 0.4978497418841661,
+                "ymag": 0.3847020732741283,
+                "zfar": 2.747956024842027,
+                "znear": 1.7689644047300797
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 1,
+                        "NORMAL": 2
+                    },
+                    "indices": 0,
+                    "material": 0,
+                    "mode": 4
+                }
+            ]
+        }
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "byteOffset": 0,
+            "componentType": 5125,
+            "count": 106836,
+            "type": "SCALAR",
+            "min": [
+                0
+            ],
+            "max": [
+                44877
+            ]
+        },
+        {
+            "bufferView": 1,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 44878,
+            "type": "VEC3",
+            "min": [
+                -0.2374659776687622,
+                -0.21627432107925415,
+                -0.21629495918750763
+            ],
+            "max": [
+                -0.010160000063478947,
+                0.21627432107925415,
+                0.2162814885377884
+            ]
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 44878,
+            "type": "VEC3",
+            "min": [
+                -1.0,
+                -1.0,
+                -1.0
+            ],
+            "max": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }
+    ],
+    "materials": [
+        {
+            "name": "defaultplastic",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    0.000023328007701206905,
+                    0.04298701041677947,
+                    0.6523701237419859,
+                    1.0
+                ],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.17999999970197678
+            }
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteOffset": 0,
+            "byteLength": 427344,
+            "target": 34963
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 427344,
+            "byteLength": 538536,
+            "byteStride": 12,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 965880,
+            "byteLength": 538536,
+            "byteStride": 12,
+            "target": 34962
+        }
+    ],
+    "buffers": [
+        {
+            "uri": "TAILCONE2.bin",
+            "byteLength": 1504416
+        }
+    ]
+}

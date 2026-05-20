@@ -12,34 +12,49 @@
 -->
 
 @{
-total_mass = 147.5671
-buoyancy_z_offset = -0.007
+total_mass = 1015.587701
+buoyancy_z_offset = -0.05
 fluid_density = 1025
-base_link_dx = 2.0
-base_link_dy = 0.4
+base_link_dx = 5.2
+base_link_dy = 0.533
 
 battery_mass = 31.7307
-battery_inertial_pose = [0.536, 0, 0, 0, 0, 0]
+battery_inertial_pose = [2.536, 0, 0, 0, 0, 0]
 
 drop_weight_mass = 1.0
-drop_weight_pose = [-0.128, 0, 0, 0, 0, 0]
+drop_weight_pose = [0.128, 0, 0, 0, 0, 0]
 
-fin_mass = 0.089896
-propeller_mass = 0.098986
+tailcone1_mass = 0.433
+tailcone2_mass = 4.482
+propeller_mass = 0.339
 buoyancy_engine_mass = 0.3
 acoustic_transponder_mass = 0.01
+
+body_cad_centroid = [2.73898254, 1.33322978e-05, -1.26695777e-04, 0, 0, 0]
 
 neutral_buoyancy_dx = 0.1
 neutral_buoyancy_dy = 0.1
 
-component_x_moments = (
-    battery_mass * battery_inertial_pose[0]
-    + drop_weight_mass * drop_weight_pose[0])
-component_mass = battery_mass + drop_weight_mass
-base_link_mass = total_mass - component_mass
-base_link_inertial_pose = [
-    -component_x_moments / base_link_mass, 0, 0, 0, 0, 0]
-base_link_dz = total_mass / (base_link_dx * base_link_dy * fluid_density)
+separate_link_mass = (
+  battery_mass
+  + drop_weight_mass
+  + tailcone1_mass
+  + tailcone2_mass
+  + propeller_mass
+  + buoyancy_engine_mass
+  + acoustic_transponder_mass)
+base_link_mass = total_mass - separate_link_mass
+main_body_buoyant_mass = base_link_mass + battery_mass + drop_weight_mass
+base_link_inertial_pose = body_cad_centroid
+main_body_buoyancy_x = 2.730003535115409
+main_body_buoyancy_pose = [
+  main_body_buoyancy_x,
+  0,
+  body_cad_centroid[2] + buoyancy_z_offset,
+  0,
+  0,
+  0]
+base_link_dz = main_body_buoyant_mass / (base_link_dx * base_link_dy * fluid_density)
 
 def neutral_buoyancy_size(mass):
     dz = mass / (neutral_buoyancy_dx * neutral_buoyancy_dy * fluid_density)
@@ -65,31 +80,31 @@ def fmt(value):
         <!--<mass>146.5671</mass>-->
         <!-- TODO: Get inertial matrix of base link WITHOUT battery -->
         <inertia>
-          <ixx>3.000000</ixx>
+          <ixx>32.0</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>41.980233</iyy>
+          <iyy>1757.802554</iyy>
           <iyz>0</iyz>
-          <izz>41.980233</izz>
+          <izz>1757.802554</izz>
         </inertia>
         <fluid_added_mass>
           <kp>0.000000</kp>
           <kv>0.000000</kv>
-          <mq>-33.463086</mq>
-          <mw>7.117842</mw>
-          <nr>-33.463086</nr>
-          <nv>-7.117842</nv>
-          <xu>-4.876161</xu>
+          <mq>-1541.634893</mq>
+          <mw>98.390533</mw>
+          <nr>-1541.634893</nr>
+          <nv>-98.390533</nv>
+          <xu>-26.133175</xu>
           <yp>0.000000</yp>
-          <yr>-7.117842</yr>
-          <yv>-126.324739</yv>
-          <zq>7.117842</zq>
-          <zw>-126.324739</zw>
+          <yr>-98.390533</yr>
+          <yv>-970.290157</yv>
+          <zq>98.390533</zq>
+          <zw>-970.290157</zw>
         </fluid_added_mass>
       </inertial>
 
       <collision name="main_body_buoyancy">
-        <pose>@(fmt([0, 0, buoyancy_z_offset, 0, 0, 0]))</pose>
+        <pose>@(fmt(main_body_buoyancy_pose))</pose>
         <geometry>
           <box>
             <size>@(fmt([base_link_dx, base_link_dy, base_link_dz]))</size>
@@ -100,7 +115,7 @@ def fmt(value):
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/auv_body.gltf</uri>
+            <uri>meshes/dorado/Dorado_Gazebo_CAD_Mapper1/AUV_BODY/AUV_BODY.gltf</uri>
           </mesh>
         </geometry>
         <!-- <material>
@@ -123,183 +138,87 @@ def fmt(value):
       </visual>
     </link>
 
-    <!-- Elevator assembly (starboard + port) -->
-    <link name="elevator_stbd">
-      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
+    <!-- Elevator assembly (starboard + port), moved to the tailcone gimbal -->
+    <link name="tailcone1_elevator">
+      <pose relative_to="base_link" degrees="true">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>-0.008245 0 0.10036 0 0 0</pose>
-        <mass>@(fmt(2.0 * fin_mass))</mass>
+        <pose>-0.000188794464 -0.001283443690 0.000000073961538 0 0 0</pose>
+        <mass>@(fmt(tailcone1_mass))</mass>
         <inertia>
-          <ixx>0.005762519936</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.005821261036</iyy>
-          <iyz>0</iyz>
-          <izz>0.000061102178</izz>
+          <ixx>0.003872666790000</ixx>
+          <ixy>0.000012025632700</ixy>
+          <ixz>-0.000000005550018</ixz>
+          <iyy>0.002126378970000</iyy>
+          <iyz>-0.000000023404624</iyz>
+          <izz>0.002075473960000</izz>
         </inertia>
       </inertial>
 
-      <collision name="elevator_stbd_buoyancy">
+      <collision name="tailcone1_buoyancy">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt(neutral_buoyancy_size(tailcone1_mass)))</size>
           </box>
         </geometry>
       </collision>
 
-      <collision name="elevator_port_buoyancy">
-        <pose degrees="true">0 0 0.20072 180 0 0</pose>
-        <geometry>
-          <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
-          </box>
-        </geometry>
-      </collision>
-
-      <visual name="elevator_stbd_visual">
+      <visual name="tailcone1_visual">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/rudder.STL</uri>
+            <uri>meshes/dorado/Dorado_Gazebo_CAD_Mapper1/TAILCONE1/TAILCONE1.gltf</uri>
           </mesh>
         </geometry>
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <!-- <pbr>
-            <metal>
-              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
-              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
-              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
-              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
-            </metal>
-          </pbr>
-          <script>
-            <uri>materials/scripts/</uri>
-            <uri>materials/textures/</uri>
-            <name>tethys/Tethys_Diffuse</name>
-          </script> -->
-        </material>
-      </visual>
-
-      <visual name="elevator_port_visual">
-        <pose degrees="true">0 0 0.20072 180 0 0</pose>
-        <geometry>
-          <mesh>
-            <uri>meshes/rudder.STL</uri>
-          </mesh>
-        </geometry>
-        <material>
-          <diffuse>1.0 1.0 1.0</diffuse>
-          <specular>1.0 1.0 1.0</specular>
-          <!-- <pbr>
-            <metal>
-              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
-              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
-              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
-              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
-            </metal>
-          </pbr>
-          <script>
-            <uri>materials/scripts/</uri>
-            <uri>materials/textures/</uri>
-            <name>tethys/Tethys_Diffuse</name>
-          </script> -->
         </material>
       </visual>
     </link>
 
-    <!-- Rudder assembly (upper + lower) -->
-    <link name="rudder_upper">
-      <pose relative_to="base_link">-0.49001 0 -0.10036 0 0 0</pose>
+    <!-- Rudder assembly (upper + lower), moved to the tailcone gimbal -->
+    <link name="tailcone2_rudder">
+      <pose relative_to="tailcone1_elevator">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>-0.008245 0 0.10036 0 0 0</pose>
-        <mass>@(fmt(2.0 * fin_mass))</mass>
+        <pose>-0.114408906000 -0.000001093452 0.000009130530 0 0 0</pose>
+        <mass>@(fmt(tailcone2_mass))</mass>
         <inertia>
-          <ixx>0.005762519936</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.005821261036</iyy>
-          <iyz>0</iyz>
-          <izz>0.000061102178</izz>
+          <ixx>0.101689528000000</ixx>
+          <ixy>0.000000063634077</ixy>
+          <ixz>-0.000001560126430</ixz>
+          <iyy>0.067756292200000</iyy>
+          <iyz>-0.000000012796612</iyz>
+          <izz>0.067760960200000</izz>
         </inertia>
       </inertial>
 
-      <collision name="rudder_upper_buoyancy">
+      <collision name="tailcone2_buoyancy">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt(neutral_buoyancy_size(tailcone2_mass)))</size>
           </box>
         </geometry>
       </collision>
 
-      <collision name="rudder_lower_buoyancy">
-        <pose degrees="true">0 0 0.20072 180 0 0</pose>
-        <geometry>
-          <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
-          </box>
-        </geometry>
-      </collision>
-
-      <visual name="rudder_upper_visual">
-        <pose>0 0 0 0 0 0</pose>
+      <visual name="tailcone2_visual">
+        <pose degrees="true">0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/rudder.STL</uri>
+            <uri>meshes/dorado/Dorado_Gazebo_CAD_Mapper1/TAILCONE2/TAILCONE2.gltf</uri>
           </mesh>
         </geometry>
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
           <specular>1.0 1.0 1.0</specular>
-          <!-- <pbr>
-            <metal>
-              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
-              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
-              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
-              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
-            </metal>
-          </pbr>
-          <script>
-            <uri>materials/scripts/</uri>
-            <uri>materials/textures/</uri>
-            <name>tethys/Tethys_Diffuse</name>
-          </script> -->
-        </material>
-      </visual>
-
-      <visual name="rudder_lower_visual">
-        <pose degrees="true">0 0 0.20072 180 0 0</pose>
-        <geometry>
-          <mesh>
-            <uri>meshes/rudder.STL</uri>
-          </mesh>
-        </geometry>
-        <material>
-          <diffuse>1.0 1.0 1.0</diffuse>
-          <specular>1.0 1.0 1.0</specular>
-          <!-- <pbr>
-            <metal>
-              <albedo_map>materials/textures/Tethys_Albedo.png</albedo_map>
-              <normal_map>materials/textures/Tethys_Normal.png</normal_map>
-              <metalness_map>materials/textures/Tethys_Metalness.png</metalness_map>
-              <roughness_map>materials/textures/Tethys_Roughness.png</roughness_map>
-            </metal>
-          </pbr>
-          <script>
-            <uri>materials/scripts/</uri>
-            <uri>materials/textures/</uri>
-            <name>tethys/Tethys_Diffuse</name>
-          </script> -->
         </material>
       </visual>
     </link>
 
     <!-- Propeller -->
     <link name="propeller">
-      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
+      <pose relative_to="tailcone2_rudder">-0.137922253 0 0 0 0 0</pose>
       <inertial>
-        <pose>-0.020426 0.000003 -0.000001 0 0 0</pose>
+        <pose>-0.0387989966e 0.000003 0.0000004 0 0 0</pose>
         <mass>@(fmt(propeller_mass))</mass>
         <inertia>
           <ixx>0.000116947629</ixx>
@@ -323,7 +242,7 @@ def fmt(value):
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>meshes/prop.STL</uri>
+            <uri>meshes/dorado/Dorado_Gazebo_CAD_Mapper1/PROP/PROP.gltf</uri>
           </mesh>
         </geometry>
         <material>
@@ -451,11 +370,11 @@ def fmt(value):
     </joint>
 
     <joint name="elevator_stbd_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
+      <pose relative_to="tailcone1_elevator" degrees="true">0 0 0 0 0 0</pose>
       <parent>base_link</parent>
-      <child>elevator_stbd</child>
+      <child>tailcone1_elevator</child>
       <axis>
-        <xyz>0 0 -1</xyz>
+        <xyz>0 1 0</xyz>
         <dynamics>
           <damping>0.01</damping>
           <friction>0.001</friction>
@@ -471,9 +390,9 @@ def fmt(value):
     </joint>
 
     <joint name="rudder_upper_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 0 -0.10036 0 0 0</pose>
-      <parent>base_link</parent>
-      <child>rudder_upper</child>
+      <pose relative_to="tailcone2_rudder" degrees="true">-0.0254 0 0 0 0 0</pose>
+      <parent>tailcone1_elevator</parent>
+      <child>tailcone2_rudder</child>
       <axis>
         <xyz>0 0 1</xyz>
         <dynamics>
@@ -491,8 +410,8 @@ def fmt(value):
     </joint>
 
     <joint name="propeller_joint" type="revolute">
-      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
-      <parent>base_link</parent>
+      <pose relative_to="propeller">0 0 0 0 0 0</pose>
+      <parent>tailcone2_rudder</parent>
       <child>propeller</child>
       <axis>
         <xyz>1 0 0</xyz>
@@ -500,8 +419,8 @@ def fmt(value):
           <lower>-1e+12</lower>
           <upper>1e+12</upper>
           <effort>1e6</effort>
-          <!-- 1.5 m/s / 0.0318309 m/rad ~= 47.1239 rad/s -->
-          <velocity>47.1239</velocity>
+          <!-- 1.5 m/s / 0.05 m/rad = 30 rad/s -->
+          <velocity>30</velocity>
         </limit>
       </axis>
     </joint>

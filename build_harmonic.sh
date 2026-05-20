@@ -5,7 +5,7 @@ set -euo pipefail
 docker_args=(
 	build
 	--target lrauv
-	-t lrauv:harmonic-frames
+	-t lrauv:harmonic-dorado
 	-f tools/setup/Dockerfile
 )
 
