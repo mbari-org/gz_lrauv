@@ -253,6 +253,36 @@ void TethysCommPlugin::Configure(
   {
     this->oceanDensity = _sdf->Get<double>("ocean_density");
   }
+  if (_sdf->HasElement("heartbeat_period"))
+  {
+    const auto heartbeatPeriodSec =
+      _sdf->Get<double>("heartbeat_period");
+    if (heartbeatPeriodSec < 0.0)
+    {
+      gzerr << "<heartbeat_period> must be non-negative. Received ["
+            << heartbeatPeriodSec << "]" << std::endl;
+    }
+    else
+    {
+      this->heartbeatPeriodNs = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(
+          std::chrono::duration<double>(heartbeatPeriodSec));
+    }
+  }
+  if (_sdf->HasElement("pubdelay"))
+  {
+    const auto pubDelaySec = _sdf->Get<double>("pubdelay");
+    if (pubDelaySec < 0.0)
+    {
+      gzerr << "<pubdelay> must be non-negative. Received ["
+            << pubDelaySec << "]" << std::endl;
+    }
+    else
+    {
+      this->pubDelayNs = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(std::chrono::duration<double>(pubDelaySec));
+    }
+  }
 
   // Initialize transport
   if (!this->node.Subscribe(this->commandTopic,

@@ -130,10 +130,12 @@ namespace tethys
     private: std::chrono::nanoseconds lastStatePubTimeNs{0s};
 
     /// Heartbeat publish period when there are no pending command windows.
-    private: std::chrono::nanoseconds heartbeatPeriodNs{400ms};
+    /// Optional SDF tag: <heartbeat_period>seconds</heartbeat_period>
+    private: std::chrono::nanoseconds heartbeatPeriodNs{200ms};
 
     /// Duration to wait after receiving command to publish state feedback
-    private: std::chrono::nanoseconds pubDelayNs{180ms};  // half of LRAUV cycle
+    /// Optional SDF tag: <pubdelay>seconds</pubdelay>
+    private: std::chrono::nanoseconds pubDelayNs{90ms};  // half of LRAUV cycle
 
     /// Namespace for topics.
     private: std::string ns{""};

@@ -270,7 +270,7 @@
         <joint_name>elevator_stbd_joint</joint_name>
         <use_velocity_commands>true</use_velocity_commands>
         <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
-        <cmd_max>0.13090</cmd_max>
+        <cmd_max>0.26180</cmd_max>
       </plugin>
       <plugin
         filename="gz-sim-joint-position-controller-system"
@@ -278,7 +278,7 @@
         <joint_name>rudder_upper_joint</joint_name>
         <use_velocity_commands>true</use_velocity_commands>
         <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
-        <cmd_max>0.13090</cmd_max>
+        <cmd_max>0.26180</cmd_max>
       </plugin>
       <plugin
         filename="gz-sim-thruster-system"
@@ -287,7 +287,7 @@
         <joint_name>propeller_joint</joint_name>
         <!-- Be sure to update TethysComm when updating these numbers.
              Updated for propPitch = 0.05 m/rad. -->
-        <thrust_coefficient>0.06773808509582129</thrust_coefficient>
+        <thrust_coefficient>0.00128</thrust_coefficient>
         <fluid_density>1025</fluid_density>
         <propeller_diameter>0.337</propeller_diameter>
         <velocity_control>true</velocity_control>
@@ -333,6 +333,8 @@
         <elavator_joint>elevator_stbd_joint</elavator_joint>
         <debug_printout>0</debug_printout>
         <ocean_density>1025</ocean_density>
+        <heartbeat_period>0.2</heartbeat_period>
+        <pubdelay>0.09</pubdelay>
         <override_mass_jpc>false</override_mass_jpc>
       </plugin>
       <!--plugin
@@ -364,15 +366,15 @@
         <link_name>base_link</link_name>
         <kPabsP>-0.287619</kPabsP>
         <mPR>1541.634893</mPR> <!---->
-        <mQ>-50.0</mQ>
+        <mQ>-800.0</mQ>
         <mQabsQ>-2212.743973</mQabsQ>
-        <mUQ>-457.014465</mUQ> <!---->
+        <mUQ>-800.0</mUQ> <!---->
         <mUW>821.416574</mUW> <!---->
         <mWabsW>-451.779116</mWabsW>
         <nPQ>-1541.634893</nPQ> <!---->
-        <nR>-125.0</nR>
+        <nR>-800.0</nR>
         <nRabsR>-2212.743973</nRabsR>
-        <nUR>-457.014465</nUR> <!---->
+        <nUR>-1200.0</nUR> <!---->
         <nUV>-821.416574</nUV> <!---->
         <nVabsV>451.779116</nVabsV>
         <xQQ>98.390533</xQQ> <!---->
