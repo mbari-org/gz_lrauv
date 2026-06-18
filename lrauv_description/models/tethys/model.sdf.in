@@ -517,8 +517,8 @@ def fmt(value):
           <!-- TODO(andermi) WORKAROUND FOR KNOWN BUG IN GZ SIM -->
           <lower>-0.035</lower>
           <upper>0.035</upper>
-          <!--effort>1e6</effort-->
-          <effort>inf</effort>
+          <effort>1e6</effort>
+          <!--effort>inf</effort-->
           <!--velocity>0.0007</velocity-->
           <!-- <velocity>1</velocity> -->
         </limit>
