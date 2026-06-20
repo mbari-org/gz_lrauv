@@ -19,7 +19,7 @@ base_link_dx = 2.0
 base_link_dy = 0.4
 
 battery_mass = 31.7307
-battery_inertial_pose = [0.536, 0, 0, 0, 0, 0]
+battery_inertial_pose = [0.556, 0, 0, 0, 0, 0]
 
 drop_weight_mass = 1.0
 drop_weight_pose = [-0.128, 0, 0, 0, 0, 0]
@@ -29,21 +29,33 @@ propeller_mass = 0.098986
 buoyancy_engine_mass = 0.3
 acoustic_transponder_mass = 0.01
 
-neutral_buoyancy_dx = 0.1
-neutral_buoyancy_dy = 0.1
+neutral_buoyancy_dq1 = 0.1
+neutral_buoyancy_dq2 = 0.1
 
-component_x_moments = (
-    battery_mass * battery_inertial_pose[0]
-    + drop_weight_mass * drop_weight_pose[0])
+# Centre of mass of the base_link body structure, excluding all separately-
+# modelled links (battery, drop_weight, fins, propeller, buoyancy_engine,
+# acoustic_transponder).  Expressed in the base_link frame.  Obtained from
+# CAD mass-properties analysis; the <inertia> values below are also computed
+# about this point.
+#
+# SDFormat requires <inertia> to be expressed in the inertial frame whose
+# origin is the CoM (i.e. the frame given by <inertial><pose>).  The previous
+# template derived base_link_inertial_pose from a balance formula that placed
+# the CoM at x = -0.147 m — 683 mm from the true structural CoM — so the
+# inertia tensor was inconsistent with its reference frame, exactly the bug
+# documented for dorado.sdf.in.  Fix: use the CAD centroid directly.
+body_cad_centroid = [0.53630306, 0, 0, 0, 0, 0]
+
 component_mass = battery_mass + drop_weight_mass
 base_link_mass = total_mass - component_mass
-base_link_inertial_pose = [
-    -component_x_moments / base_link_mass, 0, 0, 0, 0, 0]
+base_link_inertial_pose = body_cad_centroid
+main_body_buoyancy_pose = [body_cad_centroid[0], 0, buoyancy_z_offset, 0, 0, 0]
 base_link_dz = total_mass / (base_link_dx * base_link_dy * fluid_density)
 
 def neutral_buoyancy_size(mass):
-    dz = mass / (neutral_buoyancy_dx * neutral_buoyancy_dy * fluid_density)
-    return [neutral_buoyancy_dx, neutral_buoyancy_dy, dz]
+    dq3 = mass / (neutral_buoyancy_dq1 * neutral_buoyancy_dq2 * fluid_density)
+    return dq3
+# [neutral_buoyancy_dx, neutral_buoyancy_dy, dz]
 
 def fmt(value):
     if isinstance(value, (list, tuple)):
@@ -58,12 +70,10 @@ def fmt(value):
     <!-- Body -->
     <link name="base_link">
       <inertial>
-        <!-- to offset battery CoM before getting real parameters for vehicle without battery -->
+        <!-- CoM of base_link body (battery + drop_weight excluded), at body_cad_centroid. -->
+        <!-- Inertia tensor computed about body_cad_centroid in CAD mass-properties tool. -->
         <pose>@(fmt(base_link_inertial_pose))</pose>
-        <!-- 146.5671 subtracted by battery mass -->
         <mass>@(fmt(base_link_mass))</mass>
-        <!--<mass>146.5671</mass>-->
-        <!-- TODO: Get inertial matrix of base link WITHOUT battery -->
         <inertia>
           <ixx>3.000000</ixx>
           <ixy>0</ixy>
@@ -75,21 +85,21 @@ def fmt(value):
         <fluid_added_mass>
           <kp>0.000000</kp>
           <kv>0.000000</kv>
-          <mq>-33.463086</mq>
-          <mw>7.117842</mw>
-          <nr>-33.463086</nr>
-          <nv>-7.117842</nv>
-          <xu>-4.876161</xu>
+          <mq>33.463086</mq>
+          <mw>-7.117842</mw>
+          <nr>33.463086</nr>
+          <nv>7.117842</nv>
+          <xu>4.876161</xu>
           <yp>0.000000</yp>
-          <yr>-7.117842</yr>
-          <yv>-126.324739</yv>
-          <zq>7.117842</zq>
-          <zw>-126.324739</zw>
+          <yr>7.117842</yr>
+          <yv>126.324739</yv>
+          <zq>-7.117842</zq>
+          <zw>126.324739</zw>
         </fluid_added_mass>
       </inertial>
 
       <collision name="main_body_buoyancy">
-        <pose>@(fmt([0, 0, buoyancy_z_offset, 0, 0, 0]))</pose>
+        <pose>@(fmt(main_body_buoyancy_pose))</pose>
         <geometry>
           <box>
             <size>@(fmt([base_link_dx, base_link_dy, base_link_dz]))</size>
@@ -142,7 +152,7 @@ def fmt(value):
       <collision name="elevator_stbd_buoyancy">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_size(fin_mass), neutral_buoyancy_dq2]))</size>
           </box>
         </geometry>
       </collision>
@@ -151,7 +161,7 @@ def fmt(value):
         <pose degrees="true">0 0 0.20072 180 0 0</pose>
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_size(fin_mass), neutral_buoyancy_dq2]))</size>
           </box>
         </geometry>
       </collision>
@@ -228,7 +238,7 @@ def fmt(value):
       <collision name="rudder_upper_buoyancy">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_size(fin_mass), neutral_buoyancy_dq2]))</size>
           </box>
         </geometry>
       </collision>
@@ -237,7 +247,7 @@ def fmt(value):
         <pose degrees="true">0 0 0.20072 180 0 0</pose>
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(fin_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_size(fin_mass), neutral_buoyancy_dq2]))</size>
           </box>
         </geometry>
       </collision>
@@ -314,7 +324,7 @@ def fmt(value):
       <collision name="propeller_buoyancy">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(propeller_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_size(propeller_mass), neutral_buoyancy_dq1, neutral_buoyancy_dq2]))</size>
           </box>
         </geometry>
       </collision>
@@ -408,7 +418,7 @@ def fmt(value):
       <collision name="buoyancy_engine">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(buoyancy_engine_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_dq2, neutral_buoyancy_size(buoyancy_engine_mass)]))</size>
           </box>
         </geometry>
       </collision>
@@ -432,7 +442,7 @@ def fmt(value):
       <collision name="acoustic_transponder_col">
         <geometry>
           <box>
-            <size>@(fmt(neutral_buoyancy_size(acoustic_transponder_mass)))</size>
+            <size>@(fmt([neutral_buoyancy_dq1, neutral_buoyancy_dq2, neutral_buoyancy_size(acoustic_transponder_mass)]))</size>
           </box>
         </geometry>
       </collision>
