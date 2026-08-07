@@ -7,10 +7,20 @@
   <model name="tethys">
     <enable_wind>true</enable_wind>
 
-    <include merge="true">
+    <!-- This MODEL frame is the vehicle NAV frame (origin at the CAD origin):
+         what TethysCommPlugin reports as pos_ / depth_ / lat / lon and what
+         WorldCommPlugin places at LRAUVInit initlat_ / initlon_ / initz_.
+         base_link is the separate PHYSICS frame, on the CoM.  See JOURNAL.md. -->
+    <frame name="nav_to_body">
       <!-- Align the FSK / FRD body frame with Gazebo ENU when zero-attitude
            means vehicle +X north, +Y east, +Z down. -->
       <pose degrees="true">0 0 0 180 0 90</pose>
+    </frame>
+
+    <include merge="true">
+      <!-- In body axes: the CoM is body_cad_centroid forward of the CAD origin.
+           Must equal body_cad_centroid in tethys/model.sdf.in. -->
+      <pose relative_to="nav_to_body">2.73898254 1.33322978e-05 -0.000126695777 0 0 0</pose>
       <uri>tethys</uri>
 
       <!-- Sensors -->
@@ -21,6 +31,9 @@
           name="salinity_sensor"
           type="custom"
           gz:type="salinity">
+          <!-- base_link origin is the CoM; sensors stay at their hull
+               mounting, -body_cad_centroid from it. -->
+          <pose>-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/salinity</topic>
@@ -37,6 +50,7 @@
           name="temperature_sensor"
           type="custom"
           gz:type="temperature">
+          <pose>-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/temperature</topic>
@@ -53,6 +67,7 @@
           name="chlorophyll_sensor"
           type="custom"
           gz:type="chlorophyll">
+          <pose>-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/chlorophyll</topic>
@@ -69,6 +84,7 @@
           name="current_sensor"
           type="custom"
           gz:type="current">
+          <pose>-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/current</topic>
@@ -90,7 +106,7 @@
             name="teledyne_pathfinder_dvl"
             type="custom" gz:type="dvl">
           <!-- Account for DVL mounting position -->
-          <pose degrees="true">0.60 0 0.16 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
+          <pose degrees="true">-2.13898254 -1.33322978e-05 0.160126695777 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <always_on>1</always_on>
           <update_rate>1</update_rate>
           <topic>/tethys/dvl/velocity</topic>
@@ -172,7 +188,7 @@
           <!--IMU in a Sparton AHRS-M2 -->
           <always_on>1</always_on>
           <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
-          <pose degrees="true">0 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
+          <pose degrees="true">-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
           <imu>
             <orientation_reference_frame>
               <localization>NED</localization>
@@ -259,7 +275,7 @@
           <always_on>1</always_on>
           <update_rate>10</update_rate>
           <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
-          <pose degrees="true">0 0 0 180 0 90</pose> <!-- TODO(andermi) find correct mounting position -->
+          <pose degrees="true">-2.73898254 -1.33322978e-05 0.000126695777 180 0 90</pose> <!-- TODO(andermi) find correct mounting position -->
           <topic>/tethys/ahrs/magnetometer</topic>
         </sensor>
       </experimental:params>
@@ -337,6 +353,8 @@
         <pubdelay>0.09</pubdelay>
         <override_mass_jpc>false</override_mass_jpc>
       </plugin>
+      <!-- SUPERSEDED by gz-sim-hydrodynamics-system below, and these are tethys
+           values, not dorado. -->
       <!--plugin
         filename="HydrodynamicsPlugin"
         name="tethys::HydrodynamicsPlugin">
@@ -364,35 +382,33 @@
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
+        <!-- Referenced to the base_link origin, now the CoM, so used as authored.
+             Added-mass Coriolis is NOT re-applied here: DART computes C_A(v)*v from
+             <fluid_added_mass>, which now actually reaches it.  Deleted xVR, xWQ,
+             yWP, zVP, xQQ, xRR, mPR, nPQ (each equals an added-mass matrix entry);
+             nUV, mUW, nUR, mUQ, yUR, zUQ now carry only their viscous residual.
+             Old values and derivation in JOURNAL.md. -->
         <kPabsP>-0.287619</kPabsP>
-        <mPR>1541.634893</mPR> <!---->
         <mQ>-800.0</mQ>
         <mQabsQ>-2212.743973</mQabsQ>
-        <mUQ>-800.0</mUQ> <!---->
-        <mUW>821.416574</mUW> <!---->
+        <mUQ>-701.609467</mUQ>
+        <mUW>-122.740408</mUW>
         <mWabsW>-451.779116</mWabsW>
-        <nPQ>-1541.634893</nPQ> <!---->
         <nR>-800.0</nR>
         <nRabsR>-2212.743973</nRabsR>
-        <nUR>-1200.0</nUR> <!---->
-        <nUV>-821.416574</nUV> <!---->
+        <nUR>-1101.609467</nUR>
+        <nUV>122.740408</nUV>
         <nVabsV>451.779116</nVabsV>
-        <xQQ>98.390533</xQQ> <!---->
-        <xRR>98.390533</xRR> <!---->
-        <xVR>970.290157</xVR> <!---->
-        <xVV>-65.220952</xVV> <!---->
-        <xWQ>-970.290157</xWQ> <!---->
-        <xWW>-65.220952</xWW> <!---->
+        <xVV>-65.220952</xVV>
+        <xWW>-65.220952</xWW>
         <xUabsU>-6.2282</xUabsU>
         <yRabsR>0.000000</yRabsR>
-        <yUR>75.425595</yUR> <!---->
-        <yUV>-133.344014</yUV> <!---->
+        <yUR>101.558770</yUR>
+        <yUV>-133.344014</yUV>
         <yVabsV>-854.971671</yVabsV>
-        <yWP>970.290157</yWP> <!---->
         <zQabsQ>0.000000</zQabsQ>
-        <zUQ>-75.425595</zUQ> <!---->
-        <zUW>-133.344014</zUW> <!---->
-        <zVP>-970.290157</zVP> <!---->
+        <zUQ>-101.558770</zUQ>
+        <zUW>-133.344014</zUW>
         <zWabsW>-854.971671</zWabsW>
         <water_density>1025</water_density>
         <disable_coriolis>true</disable_coriolis>

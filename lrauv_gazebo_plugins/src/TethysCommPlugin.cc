@@ -706,15 +706,32 @@ void TethysCommPlugin::PostUpdate(
   ///////////////////////////////////
   // Position
 
-  // Gazebo is using ENU, controller expects NED
+  // Gazebo is using ENU, controller expects NED / FSK.
+  //
+  // Two distinct frames are involved, and mixing them up is easy:
+  //   * The MODEL frame is the vehicle nav frame -- its origin is the CAD /
+  //     mesh origin, which is the point the LRAUV Main Vehicle Application
+  //     means by "vehicle position".  Its axes are ENU-aligned (see nav_to_body
+  //     frame in tethys_equipped/model.sdf), so it is the correct source for
+  //     POSITION only.
+  //   * base_link is the vehicle body frame, authored directly in FSK / FRD
+  //     (+X forward, +Y starboard, +Z down), with its origin on the centre of
+  //     mass.  It is the correct source for ATTITUDE and for anything resolved
+  //     in body axes.
+  // The two differ by the fixed NED -> ENU basis change, so taking attitude or
+  // body rates from the model frame would report them in (starboard, forward,
+  // up) instead of (forward, starboard, down).
   auto modelPoseENU = gz::sim::worldPose(this->modelEntity, _ecm);
   auto modelPoseNED = ENUToNED(modelPoseENU);
+
+  auto bodyPoseENU = gz::sim::worldPose(this->baseLink, _ecm);
+  auto bodyRotNED = ENUToNED(bodyPoseENU.Rot());
 
   stateMsg.set_depth_(-modelPoseENU.Pos().Z());
 
   gz::msgs::Set(stateMsg.mutable_pos_(), modelPoseNED.Pos());
-  gz::msgs::Set(stateMsg.mutable_rph_(), modelPoseNED.Rot().Euler());
-  gz::msgs::Set(stateMsg.mutable_posrph_(), modelPoseNED.Rot().Euler());
+  gz::msgs::Set(stateMsg.mutable_rph_(), bodyRotNED.Euler());
+  gz::msgs::Set(stateMsg.mutable_posrph_(), bodyRotNED.Euler());
 
   auto latlon = gz::sim::sphericalCoordinates(this->modelEntity, _ecm);
   if (latlon)
@@ -732,30 +749,50 @@ void TethysCommPlugin::PostUpdate(
   ///////////////////////////////////
   // Velocity
 
+  // Angular velocity is the same about every point on a rigid body, so this
+  // needs no lever-arm correction.
+  auto angVelComp =
+    _ecm.Component<gz::sim::components::WorldAngularVelocity>(
+    this->baseLink);
+  auto angVelENU = angVelComp->Data();
+
+  // The nav reference point is the CAD origin, which is the model frame origin
+  // (see tethys_equipped/model.sdf).  base_link's origin is on the centre of
+  // mass instead, because Gazebo requires the hydrodynamic coefficients to be
+  // referenced there.  For dorado the two points are ~2.74 m apart, so their
+  // velocities differ appreciably by omega x r, and the CoM velocity must be
+  // corrected to the nav point
+  // before it is reported.  Derive the lever arm from the ECM rather than
+  // hard-coding it, so it tracks the SDF automatically (and is zero whenever
+  // base_link sits at the model origin).
+  auto baseLinkPoseComp =
+    _ecm.Component<gz::sim::components::Pose>(this->baseLink);
+  gz::math::Vector3d navLeverENU{0.0, 0.0, 0.0};
+  if (baseLinkPoseComp)
+  {
+    // Vector from the base_link origin to the model (nav) origin, in ENU.
+    navLeverENU = modelPoseENU.Rot() * -baseLinkPoseComp->Data().Pos();
+  }
+
   // Speed
   auto linVelComp =
     _ecm.Component<gz::sim::components::WorldLinearVelocity>(
     this->baseLink);
-  auto linVelENU = linVelComp->Data();
+  auto linVelENU = linVelComp->Data() + angVelENU.Cross(navLeverENU);
   stateMsg.set_speed_(linVelENU.Length());
 
   // Velocity in NED world frame
   auto linVelNED = ENUToNED(linVelENU);
   gz::msgs::Set(stateMsg.mutable_posdot_(), linVelNED);
 
-  // Water velocity in the local vehicle frame.
-  // base_link is now defined directly in FSK / FRD.
-  auto linVelFSK = modelPoseENU.Rot().Inverse() * linVelENU;
+  // Velocity in the local vehicle frame.  base_link is authored directly in
+  // FSK / FRD, so its rotation -- not the ENU-aligned model frame's -- is what
+  // resolves a world vector into (forward, starboard, down).
+  auto linVelFSK = bodyPoseENU.Rot().Inverse() * linVelENU;
   gz::msgs::Set(stateMsg.mutable_rateuvw_(), linVelFSK);
 
-  // Angular velocity in FSK
-  auto angVelComp =
-    _ecm.Component<gz::sim::components::WorldAngularVelocity>(
-    this->baseLink);
-  auto angVelENU = angVelComp->Data();
-
   // World frame to local vehicle frame.
-  auto angVelFSK = modelPoseENU.Rot().Inverse() * angVelENU;
+  auto angVelFSK = bodyPoseENU.Rot().Inverse() * angVelENU;
   gz::msgs::Set(stateMsg.mutable_ratepqr_(), angVelFSK);
 
   // Sensor data
