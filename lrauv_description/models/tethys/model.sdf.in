@@ -9,6 +9,22 @@
     X forward, Y starboard, Z down.
   When spawning into Gazebo's ENU world, apply the fixed NED -> ENU rotation
   once so zero attitude points North with Z down.
+
+  The base_link ORIGIN is the vehicle centre of mass, NOT the CAD/mesh origin.
+  It sits 0.53630306 m FORWARD (+X) of the CAD origin, so every fixed point on
+  the hull has an X coordinate 0.53630306 m smaller here than its CAD value.
+  base_link is purely the PHYSICS frame: Gazebo requires <fluid_added_mass> and
+  the Hydrodynamics plugin coefficients to be referenced to the link origin.
+
+  The vehicle NAV frame is NOT this frame.  It is the CTD inlet port, where the
+  CAD origin is defined, and is what the LRAUV Main Vehicle Application means by
+  "vehicle position".  tethys_equipped/model.sdf offsets its <include> of this model
+  by the same 0.53630306 m so that the enclosing MODEL frame origin stays on the
+  CTD inlet.  Keep those two numbers in sync: if body_cad_centroid changes, the
+  nav_to_body offset in tethys_equipped/model.sdf must change with it.
+
+  The acoustic_transponder link stays at the CAD origin (x = -0.53630306), i.e.
+  co-located with the nav origin, and remains the range-bearing / ENU reference.
 -->
 
 @{
@@ -19,10 +35,8 @@ base_link_dx = 2.0
 base_link_dy = 0.4
 
 battery_mass = 31.7307
-battery_inertial_pose = [0.556, 0, 0, 0, 0, 0]
 
 drop_weight_mass = 1.0
-drop_weight_pose = [-0.128, 0, 0, 0, 0, 0]
 
 fin_mass = 0.089896
 propeller_mass = 0.098986
@@ -34,23 +48,68 @@ neutral_buoyancy_dq2 = 0.1
 
 # Centre of mass of the base_link body structure, excluding all separately-
 # modelled links (battery, drop_weight, fins, propeller, buoyancy_engine,
-# acoustic_transponder).  Expressed in the base_link frame.  Obtained from
-# CAD mass-properties analysis; the <inertia> values below are also computed
-# about this point.
+# acoustic_transponder).  Obtained from CAD mass-properties analysis; the
+# <inertia> values below are also computed about this point.
+#
+# Expressed in the ORIGINAL (CAD / mesh) base_link frame.  The link origin is
+# now placed here, so in the emitted SDF this point is the origin itself and
+# every other authored CAD coordinate is offset by -link_origin_shift; see
+# below.  This quantity is what all such coordinates are measured from, so it
+# stays in CAD coordinates.
 #
 # SDFormat requires <inertia> to be expressed in the inertial frame whose
-# origin is the CoM (i.e. the frame given by <inertial><pose>).  The previous
-# template derived base_link_inertial_pose from a balance formula that placed
-# the CoM at x = -0.147 m — 683 mm from the true structural CoM — so the
-# inertia tensor was inconsistent with its reference frame, exactly the bug
-# documented for dorado.sdf.in.  Fix: use the CAD centroid directly.
+# origin is the CoM (i.e. the frame given by <inertial><pose>).  Using the CAD
+# centroid keeps the tensor consistent with its reference frame; an earlier
+# template derived the inertial pose from a balance formula that put the CoM
+# 683 mm away from the true structural CoM, the bug documented for
+# dorado.sdf.in.
 body_cad_centroid = [0.53630306, 0, 0, 0, 0, 0]
+
+# The base_link origin is placed ON the vehicle centre of mass.
+#
+# Both the <fluid_added_mass> matrix below and the damping / Coriolis
+# coefficients of the Hydrodynamics plugin were derived about the CoM, but
+# Gazebo does NOT reference either of them to <inertial><pose>:
+#   * DART requires <fluid_added_mass> to be expressed about the LINK ORIGIN,
+#   * the Hydrodynamics plugin reads the body twist at the link origin and
+#     applies its wrench there.
+# So a CoM-referenced coefficient set is silently interpreted as
+# origin-referenced.  The added mass could be re-referenced by a 6x6
+# congruence, but the dominant crossflow-drag damping (yVabsV, nRabsR,
+# mQabsQ, ...) cannot be exactly re-expressed in the coefficient basis of the
+# plugin -- the |v + d*r| crossflow kink has no representation in the
+# {v|v|, r|r|, ...} terms.  The exact fix is therefore to move the link origin
+# onto the CoM so that every authored coefficient is correct as-written, with
+# no transform.
+#
+# Every pose expressed in the base_link frame is shifted by
+# -link_origin_shift in X.  Child-frame poses (the inertial / collision /
+# visual poses inside each fin and propeller link, and the LiftDrag <cp>
+# values) are already relative to their own link and are left untouched.
+link_origin_shift = body_cad_centroid[0]
+
+def shift_to_com(pose):
+    """Re-express a base_link-frame pose about the new (CoM) link origin."""
+    shifted = list(pose)
+    shifted[0] = round(shifted[0] - link_origin_shift, 9)
+    return shifted
 
 component_mass = battery_mass + drop_weight_mass
 base_link_mass = total_mass - component_mass
-base_link_inertial_pose = body_cad_centroid
-main_body_buoyancy_pose = [body_cad_centroid[0], 0, buoyancy_z_offset, 0, 0, 0]
+# CoM is now the link origin, so the inertial pose is identity.
+base_link_inertial_pose = shift_to_com(body_cad_centroid)
+base_link_visual_pose = shift_to_com([0, 0, 0, 0, 0, 0])
+main_body_buoyancy_pose = shift_to_com(
+    [body_cad_centroid[0], 0, buoyancy_z_offset, 0, 0, 0])
 base_link_dz = total_mass / (base_link_dx * base_link_dy * fluid_density)
+
+elevator_stbd_pose = shift_to_com([-0.49001, 0.10036, 0, 90.0, 0, 0])
+rudder_upper_pose = shift_to_com([-0.49001, 0, -0.10036, 0, 0, 0])
+propeller_pose = shift_to_com([-0.86045, 0, 0, 0, 0, 0])
+battery_inertial_pose = shift_to_com([0.556, 0, 0, 0, 0, 0])
+buoyancy_engine_pose = shift_to_com([-0.137, 0, 0, 0, 0, 0])
+drop_weight_pose = shift_to_com([-0.128, 0, 0, 0, 0, 0])
+acoustic_transponder_pose = shift_to_com([0, 0, 0, 180, 0, 90])
 
 def neutral_buoyancy_size(mass):
     dq3 = mass / (neutral_buoyancy_dq1 * neutral_buoyancy_dq2 * fluid_density)
@@ -70,8 +129,9 @@ def fmt(value):
     <!-- Body -->
     <link name="base_link">
       <inertial>
-        <!-- CoM of base_link body (battery + drop_weight excluded), at body_cad_centroid. -->
-        <!-- Inertia tensor computed about body_cad_centroid in CAD mass-properties tool. -->
+        <!-- CoM of base_link body (battery + drop_weight excluded).  The link
+             origin has been moved onto body_cad_centroid, so this pose is
+             identity; the inertia tensor is still the CAD tensor about the CoM. -->
         <pose>@(fmt(base_link_inertial_pose))</pose>
         <mass>@(fmt(base_link_mass))</mass>
         <inertia>
@@ -82,7 +142,8 @@ def fmt(value):
           <iyz>0</iyz>
           <izz>41.980233</izz>
         </inertia>
-        <fluid_added_mass>
+        <!-- wrong naming convention -->
+        <!--fluid_added_mass>
           <kp>0.000000</kp>
           <kv>0.000000</kv>
           <mq>33.463086</mq>
@@ -95,6 +156,19 @@ def fmt(value):
           <yv>126.324739</yv>
           <zq>-7.117842</zq>
           <zw>126.324739</zw>
+        </fluid_added_mass-->
+        <!-- DART expects this about the LINK ORIGIN and does not apply
+             <inertial><pose> to it.  These coefficients were derived about the
+             CoM, which is now the link origin, so they are correct as-written
+             and must NOT be transformed. -->
+        <fluid_added_mass>
+          <xx>4.876161</xx>
+          <yy>126.324739</yy>
+          <yr>7.117842</yr>
+          <zz>126.324739</zz>
+          <zq>-7.117842</zq>
+          <qq>33.463086</qq>
+          <rr>33.463086</rr>
         </fluid_added_mass>
       </inertial>
 
@@ -108,6 +182,9 @@ def fmt(value):
       </collision>
 
       <visual name="visual">
+        <!-- Mesh is authored about the old base_link origin; keep it physically
+             put now that the link origin sits on the CoM. -->
+        <pose>@(fmt(base_link_visual_pose))</pose>
         <geometry>
           <mesh>
             <uri>meshes/auv_body.gltf</uri>
@@ -135,7 +212,7 @@ def fmt(value):
 
     <!-- Elevator assembly (starboard + port) -->
     <link name="elevator_stbd">
-      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
+      <pose relative_to="base_link" degrees="true">@(fmt(elevator_stbd_pose))</pose>
       <inertial>
         <pose>-0.008245 0 0.10036 0 0 0</pose>
         <mass>@(fmt(2.0 * fin_mass))</mass>
@@ -221,7 +298,7 @@ def fmt(value):
 
     <!-- Rudder assembly (upper + lower) -->
     <link name="rudder_upper">
-      <pose relative_to="base_link">-0.49001 0 -0.10036 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(rudder_upper_pose))</pose>
       <inertial>
         <pose>-0.008245 0 0.10036 0 0 0</pose>
         <mass>@(fmt(2.0 * fin_mass))</mass>
@@ -307,7 +384,7 @@ def fmt(value):
 
     <!-- Propeller -->
     <link name="propeller">
-      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(propeller_pose))</pose>
       <inertial>
         <pose>-0.020426 0.000003 -0.000001 0 0 0</pose>
         <mass>@(fmt(propeller_mass))</mass>
@@ -360,7 +437,9 @@ def fmt(value):
     <!-- No separate collision for battery, because it is inside the vehicle.
          Additional collision requires buoyancy volume recalculation. -->
     <link name="battery">
-      <!--TODO: On hold till mesh center adjusted to aft dome, then it will be 0.563, 0, 0.024.-->
+      <!--TODO: On hold till mesh center adjusted to aft dome, then it will be
+           0.563, 0, 0.024 in CAD coordinates (i.e. pass that through
+           shift_to_com, as the 0.556 below is).-->
       <pose relative_to="base_link">@(fmt(battery_inertial_pose))</pose>
       <inertial>
         <!-- Non-zero y creates roll. Not fun to tune without actual base link inertia minus battery-->
@@ -390,7 +469,7 @@ def fmt(value):
 
     <link name="buoyancy_engine">
       <!-- TODO: Determine location of buoyancy engine -->
-      <pose relative_to="base_link">-0.137 0 0 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(buoyancy_engine_pose))</pose>
 
       <!-- TODO: Remove inertial and collision
 
@@ -425,8 +504,10 @@ def fmt(value):
     </link>
 
     <link name="acoustic_transponder">
-      <!-- This link creates an ENU reference frame from the FSK base link -->
-      <pose degrees="true">0 0 0 180 0 90</pose>
+      <!-- This link creates an ENU reference frame from the FSK base link.
+           Kept at the old base_link origin so the nav / range-bearing
+           reference point stays physically put. -->
+      <pose degrees="true">@(fmt(acoustic_transponder_pose))</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>@(fmt(acoustic_transponder_mass))</mass>
@@ -461,7 +542,7 @@ def fmt(value):
     </joint>
 
     <joint name="elevator_stbd_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 0.10036 0 90.0 0 0</pose>
+      <pose relative_to="base_link" degrees="true">@(fmt(elevator_stbd_pose))</pose>
       <parent>base_link</parent>
       <child>elevator_stbd</child>
       <axis>
@@ -481,7 +562,7 @@ def fmt(value):
     </joint>
 
     <joint name="rudder_upper_joint" type="revolute">
-      <pose relative_to="base_link" degrees="true">-0.49001 0 -0.10036 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(rudder_upper_pose))</pose>
       <parent>base_link</parent>
       <child>rudder_upper</child>
       <axis>
@@ -501,7 +582,7 @@ def fmt(value):
     </joint>
 
     <joint name="propeller_joint" type="revolute">
-      <pose relative_to="base_link">-0.86045 0 0 0 0 0</pose>
+      <pose relative_to="base_link">@(fmt(propeller_pose))</pose>
       <parent>base_link</parent>
       <child>propeller</child>
       <axis>

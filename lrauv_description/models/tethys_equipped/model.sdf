@@ -7,10 +7,32 @@
   <model name="tethys">
     <enable_wind>true</enable_wind>
 
-    <include merge="true">
+    <!--
+      This model frame is the vehicle NAV frame: its origin is the CTD inlet
+      port, which is where the CAD / mesh origin (and the old base_link origin)
+      is defined.  It is the point the LRAUV Main Vehicle Application means by
+      "vehicle position": TethysCommPlugin reports worldPose(modelEntity) as
+      pos_ / depth_ / latitudedeg_ / longitudedeg_, and WorldCommPlugin places
+      this frame at LRAUVInit's initlat_ / initlon_ / initz_.
+
+      base_link, by contrast, is the PHYSICS frame: its origin is on the vehicle
+      centre of mass, because Gazebo requires the added-mass matrix and the
+      Hydrodynamics plugin coefficients to be referenced to the link origin (see
+      tethys/model.sdf.in).  The CoM is 0.53630306 m forward (+X body) of the
+      CTD inlet, and nav_to_body below carries exactly that offset, so the two
+      frames stay decoupled: moving the CoM never moves the nav origin.
+    -->
+    <frame name="nav_to_body">
       <!-- Align the FSK / FRD body frame with Gazebo ENU when zero-attitude
            means vehicle +X north, +Y east, +Z down. -->
       <pose degrees="true">0 0 0 180 0 90</pose>
+    </frame>
+
+    <include merge="true">
+      <!-- Offset expressed in body axes: CoM is 0.53630306 m forward of the
+           CTD inlet / nav origin.  Must equal body_cad_centroid[0] from
+           tethys/model.sdf.in. -->
+      <pose relative_to="nav_to_body">0.53630306 0 0 0 0 0</pose>
       <uri>tethys</uri>
 
       <!-- Sensors -->
@@ -21,6 +43,9 @@
           name="salinity_sensor"
           type="custom"
           gz:type="salinity">
+          <!-- base_link origin is at the CoM; sensors stay at their physical
+               mounting on the hull, which is -0.53630306 m in X from it. -->
+          <pose>-0.53630306 0 0 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/salinity</topic>
@@ -37,6 +62,7 @@
           name="temperature_sensor"
           type="custom"
           gz:type="temperature">
+          <pose>-0.53630306 0 0 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/temperature</topic>
@@ -53,6 +79,7 @@
           name="chlorophyll_sensor"
           type="custom"
           gz:type="chlorophyll">
+          <pose>-0.53630306 0 0 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/chlorophyll</topic>
@@ -69,6 +96,7 @@
           name="current_sensor"
           type="custom"
           gz:type="current">
+          <pose>-0.53630306 0 0 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
           <topic>/model/tethys/current</topic>
@@ -89,8 +117,9 @@
             element_id="base_link" action="add"
             name="teledyne_pathfinder_dvl"
             type="custom" gz:type="dvl">
-          <!-- Account for DVL mounting position -->
-          <pose degrees="true">0.60 0 0.16 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- Account for DVL mounting position, relative to the base_link
+               origin now sitting at the CoM (0.60 - 0.53630306). -->
+          <pose degrees="true">0.06369694 0 0.16 180 0 180</pose> <!-- TODO(andermi) find correct mounting position -->
           <always_on>1</always_on>
           <update_rate>1</update_rate>
           <topic>/tethys/dvl/velocity</topic>
@@ -171,8 +200,10 @@
             type="imu">
           <!--IMU in a Sparton AHRS-M2 -->
           <always_on>1</always_on>
-          <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
-          <pose degrees="true">0 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- Sensor frame assumed aligned with the FSK / FRD base link;
+               translated to the old base_link origin now that the link origin
+               is at the CoM. -->
+          <pose degrees="true">-0.53630306 0 0 0 0 0</pose> <!-- TODO(andermi) find correct mounting position -->
           <imu>
             <orientation_reference_frame>
               <localization>NED</localization>
@@ -258,8 +289,9 @@
             type="magnetometer">
           <always_on>1</always_on>
           <update_rate>10</update_rate>
-          <!-- Sensor frame assumed aligned with the FSK / FRD base link -->
-          <pose degrees="true">0 0 0 180 0 90</pose> <!-- TODO(andermi) find correct mounting position -->
+          <!-- ENU sensor frame from the FSK / FRD base link; translated to the
+               old base_link origin now that the link origin is at the CoM. -->
+          <pose degrees="true">-0.53630306 0 0 180 0 90</pose> <!-- TODO(andermi) find correct mounting position -->
           <topic>/tethys/ahrs/magnetometer</topic>
         </sensor>
       </experimental:params>
@@ -390,6 +422,9 @@
         <ocean_density>1025</ocean_density>
         <override_mass_jpc>false</override_mass_jpc>
       </plugin>
+      <!-- SUPERSEDED by gz-sim-hydrodynamics-system below; these coefficients
+           are stale (CoM-referenced added mass now lives in <fluid_added_mass>
+           and is integrated by DART). -->
       <!--plugin
         filename="HydrodynamicsPlugin"
         name="tethys::HydrodynamicsPlugin">
@@ -417,35 +452,43 @@
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
+        <!--
+          These coefficients are referenced to the base_link origin, which now
+          coincides with the vehicle CoM (see model.sdf.in), so they are used
+          as authored.
+
+          Added-mass Coriolis is NOT re-applied here: DART already computes
+          C_A(v)*v from <fluid_added_mass> in the <inertial> block.  The plugin
+          applies its damping matrix unconditionally (disable_coriolis only
+          gates the plugin's own Ma-based path), so the terms that equal
+          added-mass matrix entries: (xVR, xWQ, yWP, zVP, xQQ, xRR, mPR,
+          nPQ) have been removed, and the mixed terms below carry only their
+          viscous residual (full derivative minus the added-mass part):
+            nUV  -105.660262 -> 15.788316     mUW  105.660262 -> -15.788316
+            nUR   -61.182063 -> -54.064221    mUQ  -61.182063 -> -54.064221
+            yUR     8.719853 -> 13.596014     zUQ    -8.719853 -> -13.596014
+        -->
         <kPabsP>-0.191601</kPabsP>
-        <mPR>33.463086</mPR> <!---->
         <mQ>-50.0</mQ>
         <mQabsQ>-632.698957</mQabsQ>
-        <mUQ>-61.182063</mUQ> <!---->
-        <mUW>105.660262</mUW> <!---->
+        <mUQ>-54.064221</mUQ>
+        <mUW>-15.788316</mUW>
         <mWabsW>-58.113144</mWabsW>
-        <nPQ>-33.463086</nPQ> <!---->
         <nR>-125.0</nR>
         <nRabsR>-632.698957</nRabsR>
-        <nUR>-61.182063</nUR> <!---->
-        <nUV>-105.660262</nUV> <!---->
+        <nUR>-54.064221</nUR>
+        <nUV>15.788316</nUV>
         <nVabsV>58.113144</nVabsV>
-        <xQQ>7.117842</xQQ> <!---->
-        <xRR>7.117842</xRR> <!---->
-        <xVR>126.324739</xVR> <!---->
-        <xVV>-54.370919</xVV> <!---->
-        <xWQ>-126.324739</xWQ> <!---->
-        <xWW>-54.370919</xWW> <!---->
+        <xVV>-54.370919</xVV>
+        <xWW>-54.370919</xWW>
         <xUabsU>-6.2282</xUabsU>
         <yRabsR>0.000000</yRabsR>
-        <yUR>8.719853</yUR> <!---->
-        <yUV>-23.954759</yUV> <!---->
+        <yUR>13.596014</yUR>
+        <yUV>-23.954759</yUV>
         <yVabsV>-601.274653</yVabsV>
-        <yWP>126.324739</yWP> <!---->
         <zQabsQ>0.000000</zQabsQ>
-        <zUQ>-8.719853</zUQ> <!---->
-        <zUW>-23.954759</zUW> <!---->
-        <zVP>-126.324739</zVP> <!---->
+        <zUQ>-13.596014</zUQ>
+        <zUW>-23.954759</zUW>
         <zWabsW>-601.274653</zWabsW>
         <water_density>1025</water_density>
         <disable_coriolis>true</disable_coriolis>
