@@ -297,8 +297,10 @@
         <namespace>tethys</namespace>
         <joint_name>propeller_joint</joint_name>
         <!-- Be sure to update TethysComm when updating these numbers.
-             Updated for propPitch = 0.05 m/rad. -->
-        <thrust_coefficient>0.00128</thrust_coefficient>
+             Matched pair with xUabsU: Ct = |Xuabu| / (rho*D^4/propPitch^2), with
+             Xuabu -20.0 and propPitch 0.04912 m/rad from Control.cfg. Re-derive
+             if either changes, or open-loop speed control settles off command. -->
+        <thrust_coefficient>0.003650</thrust_coefficient>
         <fluid_density>1025</fluid_density>
         <propeller_diameter>0.337</propeller_diameter>
         <velocity_control>true</velocity_control>
@@ -311,12 +313,16 @@
         <air_density>1025</air_density>
         <radial_symmetry>true</radial_symmetry>
         <reversible>false</reversible>
-        <!-- Best-effort tailcone / cowl crossflow model using legacy tail params:
-             stallAngle=30 deg, finArea=0.0299 m^2, CDc=0.723, dCL=4.8 -->
+        <!-- Tailcone / cowl from legacy tail params: stallAngle=30 deg,
+             finArea=0.0299 m^2, CDc=0.723, dCL=4.8, aspectRatio=4.26.
+             cda carries INDUCED drag only: gz uses cd = cda*|alpha|, and the
+             constant CDc is already inside Xuabu (= xUabsU). Linearized at the
+             15 deg command limit: cda = CL^2/(pi*AR*0.90)/alpha. EFF 0.90 is an
+             assumption, not from the config. -->
         <area>0.0299</area>
         <a0>0.0</a0>
         <cla>4.8</cla>
-        <cda>0.723</cda>
+        <cda>0.501</cda>
         <cma>0.0</cma>
         <alpha_stall>0.523598775598299</alpha_stall>
         <cla_stall>0.0</cla_stall>
@@ -377,19 +383,24 @@
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
         <!-- About the link origin (= CoM). Added-mass Coriolis dropped (DART does
-             it); mixed terms carry the viscous residual only. Imaging config. -->
+             it); mixed terms carry the viscous residual only. Imaging config.
+             mQ/nR are not in the config: linear damping sized so linear =
+             quadratic at 0.1 m/s, else yaw/pitch decay algebraically at rest. -->
         <kPabsP>-0.287619</kPabsP>
+        <mQ>-87.531</mQ>
         <mQabsQ>-2212.743973</mQabsQ>
         <mUQ>-358.623932</mUQ>
         <mUW>-122.740408</mUW>
         <mWabsW>-451.779116</mWabsW>
+        <nR>-87.531</nR>
         <nRabsR>-2212.743973</nRabsR>
         <nUR>-358.623932</nUR>
         <nUV>122.740408</nUV>
         <nVabsV>451.779116</nVabsV>
         <xVV>-65.220952</xVV>
         <xWW>-65.220952</xWW>
-        <xUabsU>-6.2282</xUabsU>
+        <!-- Xuabu from Control.cfg. Matched pair with thrust_coefficient. -->
+        <xUabsU>-20.0</xUabsU>
         <yRabsR>0.000000</yRabsR>
         <yUR>101.558770</yUR>
         <yUV>-133.344014</yUV>

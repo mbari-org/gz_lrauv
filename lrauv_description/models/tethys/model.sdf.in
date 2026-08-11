@@ -399,7 +399,7 @@ def fmt(value):
         <limit>
           <lower>-0.3</lower>
           <upper>0.3</upper>
-          <effort>inf</effort>
+          <effort>1e6</effort>
           <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
           <!--velocity>0.13090</velocity-->
         </limit>
@@ -419,7 +419,7 @@ def fmt(value):
         <limit>
           <lower>-0.3</lower>
           <upper>0.3</upper>
-          <effort>inf</effort>
+          <effort>1e6</effort>
           <!-- Physical fin: ~30 deg in 4 s => 7.5 deg/s = 0.13090 rad/s -->
           <!--velocity>0.13090</velocity-->
         </limit>
@@ -436,8 +436,9 @@ def fmt(value):
           <lower>-1e+12</lower>
           <upper>1e+12</upper>
           <effort>1e6</effort>
-          <!-- 1.5 m/s / 0.05 m/rad = 30 rad/s -->
-          <velocity>30</velocity>
+          <!-- Headroom only; the command side is the real limit. 300 rad/s is
+               14.7 m/s at propPitch 0.04912, ~10x the operating point. -->
+          <velocity>300</velocity>
         </limit>
       </axis>
     </joint>
@@ -454,7 +455,7 @@ def fmt(value):
           <lower>-0.035</lower>
           <upper>0.035</upper>
           <!--effort>1e6</effort-->
-          <effort>inf</effort>
+          <effort>1e6</effort>
           <!--velocity>0.0007</velocity-->
           <!-- <velocity>1</velocity> -->
         </limit>
