@@ -7,10 +7,7 @@
   <model name="tethys">
     <enable_wind>true</enable_wind>
 
-    <!-- This MODEL frame is the vehicle NAV frame (origin at the CAD origin):
-         what TethysCommPlugin reports as pos_ / depth_ / lat / lon and what
-         WorldCommPlugin places at LRAUVInit initlat_ / initlon_ / initz_.
-         base_link is the separate PHYSICS frame, on the CoM.  See JOURNAL.md. -->
+    <!-- This MODEL frame is the NAV frame (CAD origin); base_link is the CoM. -->
     <frame name="nav_to_body">
       <!-- Align the FSK / FRD body frame with Gazebo ENU when zero-attitude
            means vehicle +X north, +Y east, +Z down. -->
@@ -18,8 +15,7 @@
     </frame>
 
     <include merge="true">
-      <!-- In body axes: the CoM is body_cad_centroid forward of the CAD origin.
-           Must equal body_cad_centroid in tethys/model.sdf.in. -->
+      <!-- Body axes. Must equal body_cad_centroid in tethys/model.sdf.in. -->
       <pose relative_to="nav_to_body">2.73898254 1.33322978e-05 -0.000126695777 0 0 0</pose>
       <uri>tethys</uri>
 
@@ -31,8 +27,7 @@
           name="salinity_sensor"
           type="custom"
           gz:type="salinity">
-          <!-- base_link origin is the CoM; sensors stay at their hull
-               mounting, -body_cad_centroid from it. -->
+          <!-- Hull mounting, -body_cad_centroid from the CoM. -->
           <pose>-2.73898254 -1.33322978e-05 0.000126695777 0 0 0</pose>
           <always_on>1</always_on>
           <update_rate>2</update_rate>
@@ -353,8 +348,7 @@
         <pubdelay>0.09</pubdelay>
         <override_mass_jpc>false</override_mass_jpc>
       </plugin>
-      <!-- SUPERSEDED by gz-sim-hydrodynamics-system below, and these are tethys
-           values, not dorado. -->
+      <!-- SUPERSEDED; also tethys values, not dorado. -->
       <!--plugin
         filename="HydrodynamicsPlugin"
         name="tethys::HydrodynamicsPlugin">
@@ -382,21 +376,15 @@
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
         <link_name>base_link</link_name>
-        <!-- Referenced to the base_link origin, now the CoM, so used as authored.
-             Added-mass Coriolis is NOT re-applied here: DART computes C_A(v)*v from
-             <fluid_added_mass>, which now actually reaches it.  Deleted xVR, xWQ,
-             yWP, zVP, xQQ, xRR, mPR, nPQ (each equals an added-mass matrix entry);
-             nUV, mUW, nUR, mUQ, yUR, zUQ now carry only their viscous residual.
-             Old values and derivation in JOURNAL.md. -->
+        <!-- About the link origin (= CoM). Added-mass Coriolis dropped (DART does
+             it); mixed terms carry the viscous residual only. Imaging config. -->
         <kPabsP>-0.287619</kPabsP>
-        <mQ>-800.0</mQ>
         <mQabsQ>-2212.743973</mQabsQ>
-        <mUQ>-701.609467</mUQ>
+        <mUQ>-358.623932</mUQ>
         <mUW>-122.740408</mUW>
         <mWabsW>-451.779116</mWabsW>
-        <nR>-800.0</nR>
         <nRabsR>-2212.743973</nRabsR>
-        <nUR>-1101.609467</nUR>
+        <nUR>-358.623932</nUR>
         <nUV>122.740408</nUV>
         <nVabsV>451.779116</nVabsV>
         <xVV>-65.220952</xVV>

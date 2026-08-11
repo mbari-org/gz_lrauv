@@ -10,16 +10,8 @@
   When spawning into Gazebo's ENU world, apply the fixed NED -> ENU rotation
   once so zero attitude points North with Z down.
 
-  base_link ORIGIN is the vehicle centre of mass, not the CAD/mesh origin: it is
-  the PHYSICS frame, because Gazebo references <fluid_added_mass> and the
-  Hydrodynamics coefficients to the link origin.  Every CAD coordinate below is
-  therefore offset by -body_cad_centroid.
-
-  The NAV frame (CAD origin) is separate: tethys_equipped/model.sdf offsets its
-  <include> of this model by +body_cad_centroid so the enclosing MODEL frame
-  origin stays on the CAD origin.  Keep those two numbers in sync.
-
-  See JOURNAL.md for the reasoning.
+  base_link origin = CoM (physics frame). NAV frame = CAD origin, restored by the
+  <include> offset in tethys_equipped/model.sdf. Keep the two in sync.
 -->
 
 @{
@@ -39,20 +31,10 @@ propeller_mass = 0.339
 buoyancy_engine_mass = 0.3
 acoustic_transponder_mass = 0.01
 
-# Expressed in the ORIGINAL (CAD / mesh) base_link frame.  The link origin is now
-# placed here, so in the emitted SDF this point is the origin itself and every
-# other authored CAD coordinate is offset by -link_origin_shift.
+# In CAD frame; the link origin is now placed here.
 body_cad_centroid = [2.73898254, 1.33322978e-05, -1.26695777e-04, 0, 0, 0]
 
-# base_link origin placed ON the CoM, so the CoM-referenced <fluid_added_mass>
-# and Hydrodynamics coefficients are correct as-written.  Gazebo references both
-# to the LINK ORIGIN and ignores <inertial><pose>, so a CoM-referenced set was
-# being read as origin-referenced: a 2.74 m frame error.  See JOURNAL.md.
-#
-# All three components are shifted, so <inertial><pose> becomes exactly identity.
-# Poses relative to a CHILD link (the tailcone gimbal chain, the propeller, every
-# child inertial / collision / visual pose, and the LiftDrag cp) are already in
-# the child frame and are left untouched.
+# Shifts base_link-frame poses onto the CoM. Child-frame poses are not shifted.
 link_origin_shift = body_cad_centroid[:3]
 
 def shift_to_com(pose):
@@ -74,7 +56,6 @@ separate_link_mass = (
   + acoustic_transponder_mass)
 base_link_mass = total_mass - separate_link_mass
 main_body_buoyant_mass = base_link_mass + battery_mass + drop_weight_mass
-# CoM is now the link origin, so the inertial pose is identity.
 base_link_inertial_pose = shift_to_com(body_cad_centroid)
 base_link_visual_pose = shift_to_com([0, 0, 0, 0, 0, 0])
 main_body_buoyancy_x = 2.730003535115409
@@ -110,8 +91,7 @@ def fmt(value):
     <!-- Body -->
     <link name="base_link">
       <inertial>
-        <!-- Link origin moved onto body_cad_centroid, so this pose is identity;
-             the inertia tensor is still the CAD tensor about the CoM. -->
+        <!-- Identity: link origin is the CoM. Inertia is still about the CoM. -->
         <pose>@(fmt(base_link_inertial_pose))</pose>
         <!-- 146.5671 subtracted by battery mass -->
         <mass>@(fmt(base_link_mass))</mass>
@@ -125,14 +105,7 @@ def fmt(value):
           <iyz>0</iyz>
           <izz>1757.802554</izz>
         </inertia>
-        <!-- SDF 1.11 wants MATRIX-entry names (xx yy zz pp qq rr plus off-diagonals),
-             not the Fossen derivative names this block used: xu, yv, zw, mq, nr, kp,
-             kv, mw and nv are unknown to sdformat and were silently discarded, while
-             yr, zq and yp are legal and so were parsed with the derivative sign.  Net
-             effect was a zero diagonal plus two sign-flipped couplings.  Names mapped
-             xu to xx, yv to yy, zw to zz, mq to qq, nr to rr; values negated because
-             M_A is the positive-definite added-mass matrix, i.e. minus the derivatives.
-             Referenced to the LINK ORIGIN, which is now the CoM, so used as-written. -->
+        <!-- SDF matrix-entry names, M_A = -A_deriv, about the link origin (= CoM). -->
         <fluid_added_mass>
           <xx>26.133175</xx>
           <yy>970.290157</yy>
@@ -154,7 +127,7 @@ def fmt(value):
       </collision>
 
       <visual name="visual">
-        <!-- Mesh is authored about the CAD origin; keep it physically put. -->
+        <!-- Mesh is in CAD frame. -->
         <pose>@(fmt(base_link_visual_pose))</pose>
         <geometry>
           <mesh>
@@ -183,8 +156,7 @@ def fmt(value):
 
     <!-- Elevator assembly (starboard + port), moved to the tailcone gimbal -->
     <link name="tailcone1_elevator">
-      <!-- Gimbal sits at the CAD origin.  The rest of the chain
-           (tailcone2_rudder, propeller) is posed relative to this link. -->
+      <!-- At the CAD origin. Rest of the chain is relative to this link. -->
       <pose relative_to="base_link" degrees="true">@(fmt(tailcone1_pose))</pose>
       <inertial>
         <pose>-0.000188794464 -0.001283443690 0.000000073961538 0 0 0</pose>
@@ -379,8 +351,7 @@ def fmt(value):
     </link>
 
     <link name="acoustic_transponder">
-      <!-- ENU reference frame from the FSK base link.  Kept at the CAD origin,
-           co-located with the nav origin. -->
+      <!-- ENU reference frame from FSK base_link. At the CAD origin = nav origin. -->
       <pose degrees="true">@(fmt(acoustic_transponder_pose))</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
